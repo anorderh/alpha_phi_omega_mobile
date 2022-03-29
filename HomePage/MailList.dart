@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import '../Backend/apo_objects.dart';
 
 class MailList extends StatefulWidget {
@@ -19,58 +20,113 @@ class _MailListState extends State<MailList> {
     super.initState();
   }
 
-  ColorSwatch<int> retrieveColor(Mail msg) {
+  Map<String, dynamic> retrieveTag(Mail msg) {
     if (msg is Invite) {
-      return Colors.green;
+      return {
+        'color': Colors.green,
+        'icon': const Icon(
+          Icons.mail,
+          color: Colors.white,
+          size: 20.0,
+        )
+      };
     } else if (msg is Reply) {
-      return Colors.orange;
+      return {
+        'color': Colors.orange,
+        'icon': const Icon(
+          Icons.record_voice_over,
+          color: Colors.white,
+          size: 20.0,
+        )
+      };
     } else {
-      return Colors.blueAccent;
+      return {
+        'color': Colors.blueAccent,
+        'icon': const Icon(
+          Icons.system_update,
+          color: Colors.white,
+          size: 20.0,
+        )
+      };
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-        gridDelegate:
-        const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 10.0,
+            crossAxisSpacing: 5.0,
+            childAspectRatio: 1),
         physics: widget.scrollPhysics,
+        shrinkWrap: true,
         itemCount: widget.mail.length,
         scrollDirection: Axis.vertical,
-        shrinkWrap: true,
         itemBuilder: (context, index) {
           Mail msg = widget.mail[index];
-          ColorSwatch<int> iconColor = retrieveColor(msg);
+          Map<String, dynamic> msgTags = retrieveTag(msg);
 
-          if (index % 2 == 0) {
-            if (index + 1 != widget.mail.length) {} else {}
-          }
-
-          return OutlinedButton(
-            child: Column(
-              children: <Widget>[
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                          image: NetworkImage(
-                              msg.imageUrl),
-                          fit: BoxFit.cover)),
+          return Container(
+            decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color.fromRGBO(0, 0, 100, 0.02), Color.fromRGBO(0, 0, 100, 0.005)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )),
+            child: OutlinedButton(
+              child: Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    Align(
+                        alignment: Alignment.center,
+                        child: Column(
+                          children: <Widget>[
+                            Flexible(
+                                flex: 6,
+                                child: Padding(
+                                    padding:
+                                    const EdgeInsets.fromLTRB(10, 10, 10, 5),
+                                    child: SizedBox(
+                                        height: 90,
+                                        child: CircleAvatar(
+                                            radius: 50,
+                                            backgroundImage:
+                                            NetworkImage(msg.imageUrl))))),
+                            Flexible(
+                              flex: 3,
+                              fit: FlexFit.tight,
+                              child: Container(
+                                  alignment: Alignment.center,
+                                  child: Text('"' + msg.body + '"',
+                                      style: const TextStyle(
+                                          fontSize: 17, color: Colors.black87),
+                                      textAlign: TextAlign.center)),
+                            ),
+                            Container(
+                                child: Text(msg.sender.toString(),
+                                    style: const TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.black54))),
+                          ],
+                        )),
+                    Positioned(
+                        right: 30,
+                        bottom: 90,
+                        child: SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: RawMaterialButton(
+                            onPressed: null,
+                            fillColor: msgTags['color'],
+                            child: msgTags['icon'],
+                            shape: const CircleBorder(),
+                          ),
+                        ))
+                  ],
                 ),
-                ListTile(
-                  leading: Icon(
-                    Icons.wysiwyg_sharp,
-                    color: iconColor,
-                    size: 15,
-                  ),
-                  title: Text(msg.title),
-                  subtitle: Text(msg.sender.toString()),
-                )
-              ],
+              onPressed: () {},
             ),
-            onPressed: () {},
           );
         });
   }

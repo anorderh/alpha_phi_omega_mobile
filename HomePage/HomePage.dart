@@ -59,12 +59,16 @@ class _HomePageState extends State<HomePage> {
           scrollPhysics: const NeverScrollableScrollPhysics()),
       Inbox(received: [
         Invite(
-            'test',
-            'test',
-            [Participant('me', '9999999999')],
-            Participant('anthony', '9999999999'),
-            'https://www.apoonline.org/alphadelta/image.php?id=116140',
-            'https://www.apoonline.org/alphadelta/memberhome.php?action=eventsignup&eventid=822690')
+            title: 'test',
+            body: 'abcdefghijklmnopqrstuvwxyz aaaaaaaaaaaaaaaaaaa',
+            recipients: [Participant('me', '9999999999')],
+            sender: Participant('Anthony Norderhaug', '9999999999'),
+            imageUrl: 'https://www.apoonline.org/alphadelta/image.php?id=116140',
+            eventLink: 'https://www.apoonline.org/alphadelta/memberhome.php?action=eventsignup&eventid=822690'),
+        Mail(
+            title: 'test',
+            body: 'test',
+            recipients: [Participant('me', '9999999999')])
       ], sent: [])
     ];
     _selections = List.filled(homeTabs.length, false);
@@ -76,7 +80,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: SingleChildScrollView(
-            physics: ScrollPhysics(),
+            physics: const ScrollPhysics(),
             child: Stack(
               children: <Widget>[
                 Column(

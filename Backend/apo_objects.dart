@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+
 class EventMinimal {
   String title, link;
   String? cred, date;
@@ -83,7 +85,7 @@ class Participant {
 
   @override
   String toString() {
-    return '$name | $number';
+    return '$name';
   }
 }
 
@@ -116,8 +118,8 @@ class Mail {
   dynamic sender; // can be String or Participant
   String imageUrl;
 
-  Mail(this.title, this.body, this.recipients,
-      [this.sender = "APOM Alerts", this.imageUrl = 'https://ibb.co/8KmHQnT']);
+  Mail({required this.title, required this.body, required this.recipients,
+      this.sender = "APOM Alerts", this.imageUrl = 'https://i.ibb.co/7YSq0x8/APO-2.png'});
 
   Map<String, dynamic> toJSON() {
     return {
@@ -133,9 +135,9 @@ class Mail {
 class Invite extends Mail {
   String eventLink;
 
-  Invite(String title, String body, List<Participant> recipients,
-      dynamic sender, String imageUrl, this.eventLink)
-      : super(title, body, recipients, sender, imageUrl);
+  Invite({required String title, required String body, required List<Participant> recipients,
+      required dynamic sender, required String imageUrl, required this.eventLink})
+      : super(title: title, body: body, recipients: recipients, sender: sender, imageUrl: imageUrl);
 
   @override
   Map<String, dynamic> toJSON() {
@@ -149,9 +151,9 @@ class Invite extends Mail {
 class Reply extends Mail {
   bool joined;
 
-  Reply(String title, String body, List<Participant> recipients,
-      dynamic sender, String imageUrl, this.joined)
-      : super(title, body, recipients, sender, imageUrl);
+  Reply({required String title, required String body, required List<Participant> recipients,
+      dynamic sender, required String imageUrl, required this.joined})
+      : super(title: title, body: body, recipients: recipients, sender: sender, imageUrl: imageUrl);
 
   @override
   Map<String, dynamic> toJSON() {
@@ -166,28 +168,26 @@ Mail createMail(Map data) {
 
   if (data['eventlink'] != null) {
     return Invite(
-      data['title'],
-      data['body'],
-      JSONToParticipants(data['recipients']),
-        (data['sender'] is Map) ? JSONtoParticipant(data['sender']) : data['sender'],
-      data['imageurl'],
-      data['eventlink']);
+      title: data['title'],
+      body: data['body'],
+      recipients: JSONToParticipants(data['recipients']),
+        sender: (data['sender'] is Map) ? JSONtoParticipant(data['sender']) : data['sender'],
+      imageUrl: data['imageurl'],
+      eventLink: data['eventlink']);
   } else if (data['joined'] != null) {
     return Reply(
-        data['title'],
-        data['body'],
-        JSONToParticipants(data['recipients']),
-        (data['sender'] is Map)
+        title: data['title'],
+        body: data['body'],
+        recipients: JSONToParticipants(data['recipients']),
+        sender: (data['sender'] is Map)
             ? JSONtoParticipant(data['sender'])
             : data['sender'],
-        data['imageurl'],
-        data['joined']);
+        imageUrl: data['imageurl'],
+        joined: data['joined']);
   } else {
     return Mail(
-        data['title'],
-        data['body'],
-        JSONToParticipants(data['recipients']),
-        (data['sender'] is Map) ? JSONtoParticipant(data['sender']) : data['sender'],
-        data['imageurl']);
+        title: data['title'],
+        body: data['body'],
+        recipients: JSONToParticipants(data['recipients']));
   }
 }

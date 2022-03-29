@@ -34,7 +34,7 @@ class _HomeBarState extends State<HomeBar> {
             width: MediaQuery.of(context).size.width/3,
             child: const FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text("INBOX",
+                child: Text("MAIL",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center)
             ))
