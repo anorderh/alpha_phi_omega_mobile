@@ -14,9 +14,8 @@ class Inbox extends StatefulWidget {
 }
 
 class _InboxState extends State<Inbox> {
-  late List<Widget> inboxTabs;
-  late List<bool> _selections;
-  late int _selectedIndex;
+  late List<Widget> pages;
+  PageController controller = PageController(initialPage: 0);
   late Widget loadBox;
 
   @override
@@ -24,20 +23,6 @@ class _InboxState extends State<Inbox> {
     // TODO: implement initState
     super.initState();
     loadBox = const SizedBox.shrink();
-    inboxTabs = [
-      MailList(mail: widget.received, scrollPhysics: NeverScrollableScrollPhysics()),
-      const Text('sent')
-    ];
-
-    _selections = List.filled(inboxTabs.length, false);
-    _selectedIndex = 0;
-    _selections[_selectedIndex] = true;
-  }
-
-  void selectTab(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
   }
 
   void initiateLoading(bool input) {
@@ -57,14 +42,17 @@ class _InboxState extends State<Inbox> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 5000,
+        height: 5000,
         padding: const EdgeInsets.all(5),
         child: Stack(
           children: <Widget>[
-            Column(
-              children: <Widget>[
-                InboxBar(selections: _selections, select: selectTab),
-                inboxTabs[_selectedIndex]
-              ],
+            PageView(
+                controller: controller,
+                children: [
+                  MailList(mail: widget.received, scrollPhysics: const NeverScrollableScrollPhysics()),
+                  MailList(mail: widget.sent, scrollPhysics: const NeverScrollableScrollPhysics())
+                ]
             ),
             loadBox
           ],

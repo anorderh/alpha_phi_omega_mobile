@@ -134,7 +134,7 @@ class Invite extends Mail {
   String eventLink;
 
   Invite(String title, String body, List<Participant> recipients,
-      String imageUrl, dynamic sender, this.eventLink)
+      dynamic sender, String imageUrl, this.eventLink)
       : super(title, body, recipients, sender, imageUrl);
 
   @override
@@ -150,7 +150,7 @@ class Reply extends Mail {
   bool joined;
 
   Reply(String title, String body, List<Participant> recipients,
-      String imageUrl, dynamic sender, this.joined)
+      dynamic sender, String imageUrl, this.joined)
       : super(title, body, recipients, sender, imageUrl);
 
   @override

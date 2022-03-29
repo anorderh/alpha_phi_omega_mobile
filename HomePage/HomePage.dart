@@ -62,8 +62,8 @@ class _HomePageState extends State<HomePage> {
             'test',
             'test',
             [Participant('me', '9999999999')],
+            Participant('anthony', '9999999999'),
             'https://www.apoonline.org/alphadelta/image.php?id=116140',
-            Participant('me', '9999999999'),
             'https://www.apoonline.org/alphadelta/memberhome.php?action=eventsignup&eventid=822690')
       ], sent: [])
     ];
