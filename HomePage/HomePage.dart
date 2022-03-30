@@ -7,6 +7,7 @@ import 'CreditProgress.dart';
 import 'HomeBar.dart';
 import 'Inbox.dart';
 import 'ProfileHeader.dart';
+import 'InboxOverlay.dart';
 
 class HomePage extends StatefulWidget {
   final Map<String, dynamic> userDetails;
@@ -23,10 +24,17 @@ class _HomePageState extends State<HomePage> {
   late int _selectedIndex;
   Future<dynamic> upcoming = Future.value(null);
   late Widget loadBox;
+  String inboxHeader = "INBOX";
+  late Widget _inboxOverlay;
 
   void selectTab(int index) {
     setState(() {
       _selectedIndex = index;
+      if (_selectedIndex == 2) {
+        _inboxOverlay = InboxOverlay(inboxHeader);
+      } else {
+        _inboxOverlay = const SizedBox.shrink();
+      }
     });
   }
 
@@ -44,10 +52,17 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void changeInboxOverlay(String header) {
+    setState(() {
+      inboxHeader = header;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     loadBox = const SizedBox.shrink();
+    _inboxOverlay = const SizedBox.shrink();
     upcoming =
         init_event_list(widget.userDetails['upcomingEvents'], EventMinimal);
     homeTabs = <Widget>[
@@ -68,8 +83,8 @@ class _HomePageState extends State<HomePage> {
         Mail(
             title: 'test',
             body: 'test',
-            recipients: [Participant('me', '9999999999')])
-      ], sent: [])
+            recipients: [Participant('me', '9999999999')]),
+      ], sent: [], changeOverlay: changeInboxOverlay)
     ];
     _selections = List.filled(homeTabs.length, false);
     _selectedIndex = 0;
@@ -78,23 +93,31 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: SingleChildScrollView(
-            physics: const ScrollPhysics(),
-            child: Stack(
-              children: <Widget>[
-                Column(
+    return Stack(
+      children: <Widget>[
+        Scaffold(
+            body: SingleChildScrollView(
+                physics: const ScrollPhysics(),
+                child: Stack(
                   children: <Widget>[
-                    ProfileHeader(
-                        name: widget.userDetails['name'],
-                        position: widget.userDetails['position'],
-                        imageURL: widget.userDetails['image_url']),
-                    HomeBar(selections: _selections, select: selectTab),
-                    homeTabs[_selectedIndex],
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ProfileHeader(
+                            name: widget.userDetails['name'],
+                            position: widget.userDetails['position'],
+                            imageURL: widget.userDetails['image_url']),
+                        HomeBar(selections: _selections, select: selectTab),
+                        homeTabs[_selectedIndex],
+                      ],
+                    ),
                   ],
-                ),
-                loadBox
-              ],
-            )));
+                ))),
+        Container(
+          padding: EdgeInsets.fromLTRB(10,10,0,5),
+          child: _inboxOverlay,
+        )
+      ],
+    );
   }
 }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import '../Backend/apo_objects.dart';
-import 'InboxBar.dart';
 import 'MailList.dart';
 
 class Inbox extends StatefulWidget {
   List<Mail> received, sent;
+  Function changeOverlay;
 
-  Inbox({Key? key, required this.received, required this.sent})
+  Inbox({Key? key, required this.received, required this.sent, required this.changeOverlay})
       : super(key: key);
 
   @override
@@ -16,17 +17,27 @@ class Inbox extends StatefulWidget {
 class _InboxState extends State<Inbox> {
   late List<Widget> pages;
   PageController controller = PageController(initialPage: 0);
-  late bool headerVisible;
-  late String header;
+  bool headerVisible = true;
   late Widget loadBox;
+  int mailHeight = 200;
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    header = 'Inbox';
-    headerVisible = true;
-    loadBox = const SizedBox.shrink();
+  double mailQuantity() {
+    int r = widget.received.length;
+    int s = widget.sent.length;
+
+    if (r < 20 && s < 20) {
+      if (r < 4 && s < 4) {
+        return 2;
+      } else {
+        if (r < s) {
+          return (s/2 + s%2);
+        } else {
+          return (r/2 + r%2);
+        }
+      }
+    } else {
+      return 10;
+    }
   }
 
   void initiateLoading(bool input) {
@@ -43,62 +54,45 @@ class _InboxState extends State<Inbox> {
     });
   }
 
-  void pageChange(int index) {
+  void changeHeader(int index) {
     setState(() {
-      if (index == 1) {
-        header = 'Sent';
+      if (index == 0) {
+        widget.changeOverlay("INBOX");
       } else {
-        header = 'Inbox';
+        widget.changeOverlay("SENT");
       }
     });
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    headerVisible = true;
+    loadBox = const SizedBox.shrink();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-        width: 5000,
-        height: 5000,
+        height: (mailQuantity() * mailHeight).toDouble(),
         padding: const EdgeInsets.all(5),
-        child: Stack(
-          alignment: Alignment.center,
-          children: <Widget>[
-            PageView(
-                onPageChanged: pageChange,
-                controller: controller,
-                children: [
-                  MailList(
-                      mail: widget.received,
-                      scrollPhysics: const NeverScrollableScrollPhysics()),
-                  MailList(
-                      mail: widget.sent,
-                      scrollPhysics: const NeverScrollableScrollPhysics())
-                ]),
-            Align(
-              alignment: Alignment.topRight,
-              child: AnimatedOpacity(
-                  opacity: headerVisible ? 1.0 : 1.0,
-                  duration: const Duration(milliseconds: 500),
-                  child: Container(
-                      height: 30,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        color: Colors.blueAccent,
-                      ),
-                      child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: Padding(
-                            padding: EdgeInsets.all(5),
-                            child: Text(
-                              header,
-                              style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                          )))),
-            ),
-            loadBox
-          ],
-        ));
+        child: PageView(
+            controller: controller,
+            onPageChanged: changeHeader,
+            children: [
+          Column(children: <Widget>[
+            MailList(
+                mail: widget.received,
+                scrollPhysics: const NeverScrollableScrollPhysics())
+          ]),
+          Column(
+            children: <Widget>[
+              MailList(
+                  mail: widget.sent,
+                  scrollPhysics: const NeverScrollableScrollPhysics())
+            ],
+          )
+        ]));
   }
 }
