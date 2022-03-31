@@ -5,7 +5,7 @@ import 'MailList.dart';
 
 class Inbox extends StatefulWidget {
   List<Mail> received, sent;
-  Function changeOverlay;
+  void Function(int?) changeOverlay;
 
   Inbox({Key? key, required this.received, required this.sent, required this.changeOverlay})
       : super(key: key);
@@ -54,16 +54,6 @@ class _InboxState extends State<Inbox> {
     });
   }
 
-  void changeHeader(int index) {
-    setState(() {
-      if (index == 0) {
-        widget.changeOverlay("INBOX");
-      } else {
-        widget.changeOverlay("SENT");
-      }
-    });
-  }
-
   @override
   void initState() {
     // TODO: implement initState
@@ -79,7 +69,7 @@ class _InboxState extends State<Inbox> {
         padding: const EdgeInsets.all(5),
         child: PageView(
             controller: controller,
-            onPageChanged: changeHeader,
+            onPageChanged: widget.changeOverlay,
             children: [
           Column(children: <Widget>[
             MailList(

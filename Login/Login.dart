@@ -51,7 +51,7 @@ class _LoginBodyState extends State<LoginBody> {
     if (soup.find('div', attrs: {'id': 'topheader-name'}) == null) {
       updatePrompt("Invalid login");
     } else {
-      Map<String, dynamic> details = await profileDetails(soup);
+      Map<String, dynamic> details = await profileDetails(soup, userController.text);
       updatePrompt("Successful login");
 
       Navigator.push(

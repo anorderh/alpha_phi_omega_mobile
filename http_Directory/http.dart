@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:beautiful_soup_dart/beautiful_soup.dart';
+import 'package:example/Backend/database.dart';
 import 'package:example/EventPage/Events.dart';
 import 'package:example/Backend/apo_objects.dart';
 
@@ -53,13 +54,17 @@ Future<BeautifulSoup> initHTTP(String user, String pw) async {
 }
 
 
-Future<Map<String, dynamic>> profileDetails(BeautifulSoup soup) async {
+Future<Map<String, dynamic>> profileDetails(BeautifulSoup soup, String email) async {
   Map<String, dynamic> details = {};
 
   details['name'] =
       _spaceString(soup.find('div', attrs: {'id': 'topheader-name'})!.text);
   details['image_url'] =
       'https://www.apoonline.org/alphadelta/' + soup.find('img')!['src']!;
+  details['email'] = email;
+
+  // checking if brother in db
+  // checkBrother(details['name'], details['image_url'], details['email']);
 
   details['progress'] = mapCredits(
     _stringsFromTags(soup.findAll( // credit names

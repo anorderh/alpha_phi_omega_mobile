@@ -11,18 +11,6 @@ class InboxOverlay extends StatefulWidget {
 }
 
 class _InboxOverlayState extends State<InboxOverlay> {
-  late Widget infoButton;
-  late Widget composeButton;
-  late Widget header;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    infoButton = getInfoButton();
-    composeButton = getComposeButton();
-    header = getHeader(widget.header);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +18,7 @@ class _InboxOverlayState extends State<InboxOverlay> {
     return Align(
         alignment: Alignment.bottomCenter,
         child: Row(
-          children: <Widget>[header, Spacer(), composeButton, infoButton],
+          children: <Widget>[getHeader(widget.header), Spacer(), getComposeButton(widget.header), getInfoButton()],
         ));
   }
 }

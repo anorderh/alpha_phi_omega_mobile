@@ -10,14 +10,19 @@ Widget getInfoButton() {
       child: Icon(Icons.info, color: Colors.grey.shade700, size: 40));
 }
 
-Widget getComposeButton() {
-  return TextButton(
-      onPressed: () {},
-      style: ButtonStyle(
-          shape: MaterialStateProperty.all<OutlinedBorder>(CircleBorder()),
-          padding:
-          MaterialStateProperty.all<EdgeInsetsGeometry>(EdgeInsets.zero)),
-      child: Icon(Icons.add, color: Colors.grey.shade700, size: 40));
+Widget getComposeButton(String header) {
+  dynamic pressed = (header == 'INBOX') ? () {} : null;
+
+  if (header == 'INBOX') {
+    return TextButton(
+        onPressed: pressed,
+        style: ButtonStyle(
+            shape: MaterialStateProperty.all<OutlinedBorder>(CircleBorder()),
+            padding:
+            MaterialStateProperty.all<EdgeInsetsGeometry>(EdgeInsets.zero)),
+        child: Icon(Icons.add, color: Colors.grey.shade700, size: 40));
+  }
+  return SizedBox.shrink();
 }
 
 Widget getHeader(String headerTitle) {

@@ -24,16 +24,16 @@ class _HomePageState extends State<HomePage> {
   late int _selectedIndex;
   Future<dynamic> upcoming = Future.value(null);
   late Widget loadBox;
-  String inboxHeader = "INBOX";
-  late Widget _inboxOverlay;
+  late String inboxHeader;
+  late Widget inboxOverlay;
 
   void selectTab(int index) {
     setState(() {
       _selectedIndex = index;
       if (_selectedIndex == 2) {
-        _inboxOverlay = InboxOverlay(inboxHeader);
+        inboxOverlay = InboxOverlay(inboxHeader);
       } else {
-        _inboxOverlay = const SizedBox.shrink();
+        inboxOverlay = const SizedBox.shrink();
       }
     });
   }
@@ -52,9 +52,15 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void changeInboxOverlay(String header) {
+  void changeInboxOverlay(int? index) {
     setState(() {
-      inboxHeader = header;
+      if (index == 0) {
+        inboxHeader = 'INBOX';
+      } else {
+        inboxHeader = 'SENT';
+      }
+
+      inboxOverlay = InboxOverlay(inboxHeader);
     });
   }
 
@@ -62,7 +68,8 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     loadBox = const SizedBox.shrink();
-    _inboxOverlay = const SizedBox.shrink();
+    inboxOverlay = const SizedBox.shrink();
+    inboxHeader = "INBOX";
     upcoming =
         init_event_list(widget.userDetails['upcomingEvents'], EventMinimal);
     homeTabs = <Widget>[
@@ -78,8 +85,10 @@ class _HomePageState extends State<HomePage> {
             body: 'abcdefghijklmnopqrstuvwxyz aaaaaaaaaaaaaaaaaaa',
             recipients: [Participant('me', '9999999999')],
             sender: Participant('Anthony Norderhaug', '9999999999'),
-            imageUrl: 'https://www.apoonline.org/alphadelta/image.php?id=116140',
-            eventLink: 'https://www.apoonline.org/alphadelta/memberhome.php?action=eventsignup&eventid=822690'),
+            imageUrl:
+                'https://www.apoonline.org/alphadelta/image.php?id=116140',
+            eventLink:
+                'https://www.apoonline.org/alphadelta/memberhome.php?action=eventsignup&eventid=822690'),
         Mail(
             title: 'test',
             body: 'test',
@@ -93,31 +102,32 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Scaffold(
+        body: Stack(
       children: <Widget>[
-        Scaffold(
-            body: SingleChildScrollView(
-                physics: const ScrollPhysics(),
-                child: Stack(
+        SingleChildScrollView(
+            physics: const ScrollPhysics(),
+            child: Stack(
+              children: <Widget>[
+                Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ProfileHeader(
-                            name: widget.userDetails['name'],
-                            position: widget.userDetails['position'],
-                            imageURL: widget.userDetails['image_url']),
-                        HomeBar(selections: _selections, select: selectTab),
-                        homeTabs[_selectedIndex],
-                      ],
-                    ),
+                    ProfileHeader(
+                        name: widget.userDetails['name'],
+                        position: widget.userDetails['position'],
+                        imageURL: widget.userDetails['image_url']),
+                    HomeBar(selections: _selections, select: selectTab),
+                    homeTabs[_selectedIndex],
                   ],
-                ))),
+                ),
+              ],
+            )),
         Container(
-          padding: EdgeInsets.fromLTRB(10,10,0,5),
-          child: _inboxOverlay,
-        )
+          padding: EdgeInsets.fromLTRB(10, 10, 0, 5),
+          child: inboxOverlay,
+        ),
+        loadBox
       ],
-    );
+    ));
   }
 }
