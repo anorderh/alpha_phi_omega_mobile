@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../Backend/apo_objects.dart';
 import '../http_Directory/httpEvents.dart' as httpEvent;
 import '../EventPage/ParticipantTiles.dart';
+import '../EventPage/_EventSpec.dart';
 import 'EventButton.dart';
 
 class EventSingle extends StatefulWidget {
@@ -16,12 +17,16 @@ class EventSingle extends StatefulWidget {
 
 class _EventSingleState extends State<EventSingle> {
   bool userJoined = false;
+  late ScrollController descScroll;
+  late ScrollController participantScroll;
   int userIndex = -1;
   int quantity = 0;
 
   @override
   void initState() {
     super.initState();
+    descScroll = ScrollController();
+    participantScroll = ScrollController();
     List<Participant> people = widget.event.participants;
     quantity = people.length;
 
@@ -37,35 +42,134 @@ class _EventSingleState extends State<EventSingle> {
   Widget info() {
     return Column(children: <Widget>[
       Padding(
-          padding: const EdgeInsets.all(3),
-          child: Text(widget.event.cred ?? 'n/a')),
-      Padding(
-          padding: const EdgeInsets.all(3),
-          child: Text(widget.event.date ?? 'n/a')),
-      Padding(
-          padding: const EdgeInsets.all(3),
-          child: Text(widget.event.loc ?? 'n/a')),
-      Padding(
-          padding: const EdgeInsets.all(3),
-          child: Text(widget.event.desc ?? 'n/a')),
+        padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            margin: EdgeInsets.fromLTRB(10, 10, 10, 6),
+            child: Text(widget.event.title,
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                    fontSize: 40,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ),
+      Card(
+        margin: EdgeInsets.fromLTRB(10, 8, 10, 4),
+        child: Column(
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.event,
+                    color: Colors.blueGrey,
+                  ),
+                  Spacer(),
+                  Text(widget.event.date ?? 'n/a'),
+                  Spacer()
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.place, color: Colors.red.shade500),
+                  Spacer(),
+                  Expanded(
+                    child: Text(
+                      widget.event.loc ?? 'n/a',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Spacer()
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.bar_chart,
+                    color: Colors.green,
+                  ),
+                  Spacer(),
+                  Text(widget.event.cred ?? 'n/a'),
+                  Spacer()
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.person,
+                    color: Colors.lightBlueAccent,
+                  ),
+                  Spacer(),
+                  Text(widget.event.creator ?? 'n/a'),
+                  Spacer()
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+              child: Row(
+                children: <Widget>[
+                  const Icon(
+                      Icons.info_outline, color: Colors.orange
+                  ),
+                  Expanded(
+                    child: Padding(
+                        padding: EdgeInsets.fromLTRB(15, 0, 0, 0),
+                        child: Scrollbar(
+                          isAlwaysShown: true,
+                          controller: descScroll,
+                          child: Container(
+                            height: 150,
+                            child: SingleChildScrollView(
+                              controller: descScroll,
+                              child: Text(widget.event.desc ?? 'No description available.'),
+                            ),
+                          ),
+                        )
+                    )
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
+      )
     ]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-            title: Text(widget.event.title),
-            backgroundColor: Colors.deepPurple),
-        body: ListView(
-          children: [
-            EventButton(userJoined: userJoined, join: joinEvent, leave: leaveEvent),
-            ParticipantTiles(participants: widget.event.participants),
-            info()],
-          scrollDirection: Axis.vertical,
-          shrinkWrap: true,
-          physics: const AlwaysScrollableScrollPhysics(),
-        ));
+      backgroundColor: Colors.grey.shade300,
+      appBar:
+          AppBar(title: Text("Event View"), backgroundColor: Colors.blueAccent),
+      body: Scrollbar(
+          thickness: 5,
+          child: SingleChildScrollView(
+              child: Column(
+            children: <Widget>[
+              EventButton(userJoined: userJoined, join: joinEvent, leave: leaveEvent),
+              info(),
+              Card(
+                  child:
+                      ParticipantTiles(participants: widget.event.participants))
+            ],
+          ))),
+    );
   }
 
   void joinEvent() async {

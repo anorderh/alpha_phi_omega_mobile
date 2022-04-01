@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../Backend/apo_objects.dart';
 import 'EventSolo.dart';
 import 'Events.dart';
+import 'EventTile.dart';
 
 class EventList extends StatefulWidget {
   Future<dynamic> events;
@@ -22,16 +23,16 @@ class EventList extends StatefulWidget {
 }
 
 class _EventListState extends State<EventList> {
-  void viewEvent(String eventLink) async {
+  void viewEvent(EventMinimal event) async {
     widget.loading(true);
-    EventFull event = await handle_event(eventLink, EventFull);
+    EventFull eventFull = await handle_event(event.link, EventFull);
     widget.loading(false);
 
     Navigator.push(
         context,
         MaterialPageRoute(
             builder: (context) =>
-                EventSingle(event, widget.name)));
+                EventSingle(eventFull, widget.name)));
   }
 
   @override
@@ -50,18 +51,7 @@ class _EventListState extends State<EventList> {
                   shrinkWrap: true,
                   itemBuilder: (context, index) {
                     EventMinimal event = snapshot.data[index];
-                    return Card(
-                        child: Row(children: <Widget>[
-                      Expanded(
-                          child: ListTile(
-                              title: Text(event.title),
-                              subtitle: Text(event.date ?? 'n/a'))),
-                      IconButton(
-                          icon: const Icon(Icons.pending),
-                          onPressed: () {
-                            viewEvent(event.link);
-                          })
-                    ]));
+                    return EventTile(event, viewEvent);
                   });
             }
           } else {

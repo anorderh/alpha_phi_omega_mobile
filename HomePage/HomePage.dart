@@ -8,6 +8,7 @@ import 'HomeBar.dart';
 import 'Inbox.dart';
 import 'ProfileHeader.dart';
 import 'InboxOverlay.dart';
+import 'MailTutorial.dart';
 
 class HomePage extends StatefulWidget {
   final Map<String, dynamic> userDetails;
@@ -126,7 +127,7 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.fromLTRB(10, 10, 0, 5),
           child: inboxOverlay,
         ),
-        loadBox
+        loadBox,
       ],
     ));
   }

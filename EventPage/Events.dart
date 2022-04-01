@@ -96,16 +96,17 @@ Future<dynamic> handle_event(String link, Type eventType) async {
 }
 
 List<Participant> _handle_participants(BeautifulSoup soup) {
-  Bs4Element? name, number;
+  Bs4Element? name, number, comment;
   var body = soup.find('tbody');
   List<Participant> members = [];
 
   for (var tag in body!.findAll('tr')) {
     name = tag.find('td', attrs: {'nowrap': 'nowrap'})?.find('a', attrs: {'style': 'color:#000000'});
     number = tag.find('td', attrs: {'align': 'center'});
+    comment = number?.findNextElement('td', attrs: {'align': 'center'});
 
     if (name != null) {
-      members.add(Participant(name.text, number?.text ?? 'hidden'));
+      members.add(Participant(name.text, number?.text ?? 'hidden', comment?.text ?? 'n/a'));
     }
   }
 

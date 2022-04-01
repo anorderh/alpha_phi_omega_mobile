@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import '../Login/Login.dart';
 import '../Frontend/bottom_nav.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:example/EventPage/EventDialog/calcDate.dart';
 
 
 void main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

@@ -31,8 +31,7 @@ class EventFull extends EventMinimal {
       : super(title, cred, date, link);
 
   @override
-  Map<String, dynamic> toJSON() =>
-      {
+  Map<String, dynamic> toJSON() => {
         'title': title,
         'cred': cred,
         'date': date,
@@ -51,7 +50,6 @@ class EventFull extends EventMinimal {
 }
 
 EventFull JSONtoEventFull(Map data) {
-
   return EventFull(
       data['title'],
       data['cred'],
@@ -67,8 +65,9 @@ EventFull JSONtoEventFull(Map data) {
 class Participant {
   final String name;
   String number = 'n/a';
+  String comment;
 
-  Participant(this.name, String number) {
+  Participant(this.name, String number, [this.comment = 'n/a']) {
     this.number = _format(number);
   }
 
@@ -81,7 +80,8 @@ class Participant {
     return '+1' + number;
   }
 
-  Map<String, String> toJSON() => {'name': name, 'number': number};
+  Map<String, String> toJSON() =>
+      {'name': name, 'number': number, 'comment': comment};
 
   @override
   String toString() {
@@ -118,8 +118,12 @@ class Mail {
   dynamic sender; // can be String or Participant
   String imageUrl;
 
-  Mail({required this.title, required this.body, required this.recipients,
-      this.sender = "APOM Alerts", this.imageUrl = 'https://i.ibb.co/7YSq0x8/APO-2.png'});
+  Mail(
+      {required this.title,
+      required this.body,
+      required this.recipients,
+      this.sender = "APOM Alerts",
+      this.imageUrl = 'https://i.ibb.co/7YSq0x8/APO-2.png'});
 
   Map<String, dynamic> toJSON() {
     return {
@@ -135,9 +139,19 @@ class Mail {
 class Invite extends Mail {
   String eventLink;
 
-  Invite({required String title, required String body, required List<Participant> recipients,
-      required dynamic sender, required String imageUrl, required this.eventLink})
-      : super(title: title, body: body, recipients: recipients, sender: sender, imageUrl: imageUrl);
+  Invite(
+      {required String title,
+      required String body,
+      required List<Participant> recipients,
+      required dynamic sender,
+      required String imageUrl,
+      required this.eventLink})
+      : super(
+            title: title,
+            body: body,
+            recipients: recipients,
+            sender: sender,
+            imageUrl: imageUrl);
 
   @override
   Map<String, dynamic> toJSON() {
@@ -151,9 +165,19 @@ class Invite extends Mail {
 class Reply extends Mail {
   bool joined;
 
-  Reply({required String title, required String body, required List<Participant> recipients,
-      dynamic sender, required String imageUrl, required this.joined})
-      : super(title: title, body: body, recipients: recipients, sender: sender, imageUrl: imageUrl);
+  Reply(
+      {required String title,
+      required String body,
+      required List<Participant> recipients,
+      dynamic sender,
+      required String imageUrl,
+      required this.joined})
+      : super(
+            title: title,
+            body: body,
+            recipients: recipients,
+            sender: sender,
+            imageUrl: imageUrl);
 
   @override
   Map<String, dynamic> toJSON() {
@@ -165,15 +189,16 @@ class Reply extends Mail {
 }
 
 Mail createMail(Map data) {
-
   if (data['eventlink'] != null) {
     return Invite(
-      title: data['title'],
-      body: data['body'],
-      recipients: JSONToParticipants(data['recipients']),
-        sender: (data['sender'] is Map) ? JSONtoParticipant(data['sender']) : data['sender'],
-      imageUrl: data['imageurl'],
-      eventLink: data['eventlink']);
+        title: data['title'],
+        body: data['body'],
+        recipients: JSONToParticipants(data['recipients']),
+        sender: (data['sender'] is Map)
+            ? JSONtoParticipant(data['sender'])
+            : data['sender'],
+        imageUrl: data['imageurl'],
+        eventLink: data['eventlink']);
   } else if (data['joined'] != null) {
     return Reply(
         title: data['title'],
