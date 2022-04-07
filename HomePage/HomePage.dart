@@ -8,7 +8,7 @@ import 'HomeBar.dart';
 import 'Inbox.dart';
 import 'ProfileHeader.dart';
 import 'InboxOverlay.dart';
-import 'MailTutorial.dart';
+import 'ComposeBox.dart';
 
 class HomePage extends StatefulWidget {
   final Map<String, dynamic> userDetails;
@@ -24,15 +24,17 @@ class _HomePageState extends State<HomePage> {
   late List<bool> _selections;
   late int _selectedIndex;
   Future<dynamic> upcoming = Future.value(null);
-  late Widget loadBox;
+  late Widget loadBox, inboxOverlay;
   late String inboxHeader;
-  late Widget inboxOverlay;
+  late Map<String, dynamic> composeDetails;
 
   void selectTab(int index) {
     setState(() {
       _selectedIndex = index;
       if (_selectedIndex == 2) {
-        inboxOverlay = InboxOverlay(inboxHeader);
+        inboxOverlay = InboxOverlay(
+            inboxHeader,
+            composeDetails);
       } else {
         inboxOverlay = const SizedBox.shrink();
       }
@@ -61,7 +63,9 @@ class _HomePageState extends State<HomePage> {
         inboxHeader = 'SENT';
       }
 
-      inboxOverlay = InboxOverlay(inboxHeader);
+      inboxOverlay = InboxOverlay(
+          inboxHeader,
+          composeDetails);
     });
   }
 
@@ -70,9 +74,14 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     loadBox = const SizedBox.shrink();
     inboxOverlay = const SizedBox.shrink();
+    composeDetails = {
+      'events': widget.userDetails['upcomingEvents'],
+      'sender': widget.userDetails['name'],
+      'imageUrl': widget.userDetails['image_url']
+    };
     inboxHeader = "INBOX";
-    upcoming =
-        init_event_list(widget.userDetails['upcomingEvents'], EventMinimal);
+    upcoming = init_event_list(
+        widget.userDetails['upcomingEvents'].values.toList(), EventMinimal);
     homeTabs = <Widget>[
       CreditProgress(progress: widget.userDetails['progress']),
       EventList(

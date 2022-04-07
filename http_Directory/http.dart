@@ -158,10 +158,12 @@ Future<Map<String, dynamic>> profileDetails(BeautifulSoup soup, String email) as
     return credits;
   }
 
-  List<String> retrieveUpcoming(List<Bs4Element> tags) {
-    List<String> eventLinks = [];
+  Map<String, String> retrieveUpcoming(List<Bs4Element> tags) {
+    Map<String, String> eventLinks = {};
     for (Bs4Element tag in tags) {
-      eventLinks.add(base_url + tag.find('a')!['href']!);
+      Bs4Element temp = tag.find('a')!;
+
+      eventLinks[temp['title']!] = base_url + temp['href']!;
     }
 
     return eventLinks;

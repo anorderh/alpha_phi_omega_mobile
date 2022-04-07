@@ -136,7 +136,10 @@ class _EventSingleState extends State<EventSingle> {
                             height: 150,
                             child: SingleChildScrollView(
                               controller: descScroll,
-                              child: Text(widget.event.desc ?? 'No description available.'),
+                              child: Padding(
+                                padding: EdgeInsets.all(10),
+                                child: Text(widget.event.desc ?? 'No description available.')
+                              ),
                             ),
                           ),
                         )
@@ -156,7 +159,7 @@ class _EventSingleState extends State<EventSingle> {
     return Scaffold(
       backgroundColor: Colors.grey.shade300,
       appBar:
-          AppBar(title: Text("Event View"), backgroundColor: Colors.blueAccent),
+          AppBar(backgroundColor: Colors.blueAccent),
       body: Scrollbar(
           thickness: 5,
           child: SingleChildScrollView(

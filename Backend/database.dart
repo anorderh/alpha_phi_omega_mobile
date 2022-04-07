@@ -11,3 +11,19 @@ void checkBrother(String name, String email, String imageUrl) async {
     databaseRef.child('data/brothers/$name').set(brotherInfo);
   }
 }
+
+Future<Map<String, Map<String, String>>> getTotalBrothers() async {
+  Map<String, Map<String, String>> result = {};
+  DataSnapshot snapshot = await databaseRef.child('data/brothers').get();
+
+  for (DataSnapshot nameLvl in snapshot.children) {
+    Map<String, String> info = {};
+
+    for (DataSnapshot infoLvl in nameLvl.children) {
+      info[infoLvl.key!] = infoLvl.value as String;
+    }
+    result[nameLvl.key!] = info;
+  }
+
+  return result;
+}
