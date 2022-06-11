@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../Login/Login.dart';
 import '../Frontend/bottom_nav.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:example/EventPage/EventDialog/calcDate.dart';
 
 
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        textTheme: GoogleFonts.dmSerifDisplayTextTheme()
       ),
       home: LoginBody(),
     );
