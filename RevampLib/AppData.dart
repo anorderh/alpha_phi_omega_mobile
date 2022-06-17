@@ -1,29 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class ReqInfo {
+class CredInfo {
   Color color;
   IconData icon;
 
-  ReqInfo(this.color, this.icon);
+  CredInfo(this.color, this.icon);
 }
 
-ReqInfo pullReqInfo(String name) {
-  Map<String, ReqInfo> reqLibrary = {
-    'Service' : ReqInfo(Colors.red.shade200, FontAwesomeIcons.handshakeAngle),
-    'Fellowship' : ReqInfo(Colors.green.shade200, FontAwesomeIcons.peopleGroup),
-    'Leadership' : ReqInfo(Colors.purple.shade400, FontAwesomeIcons.flag),
-    'Fundraising' : ReqInfo(Colors.pink.shade200, FontAwesomeIcons.moneyBillWave),
-    'Interchapter' : ReqInfo(Colors.brown.shade400, FontAwesomeIcons.car),
-    'Philanthropy' : ReqInfo(Colors.cyan.shade200, FontAwesomeIcons.children),
-    'External Relations' : ReqInfo(Colors.deepPurple.shade400, FontAwesomeIcons.addressCard),
-    'Special Fellowship' : ReqInfo(Colors.blue.shade500, FontAwesomeIcons.star),
-    'Required Events' : ReqInfo(Colors.lime.shade500, FontAwesomeIcons.calendarCheck),
-    'Open Forum' : ReqInfo(Colors.red.shade600, FontAwesomeIcons.comments),
-    'Chair' : ReqInfo(Colors.lightBlueAccent.shade200, FontAwesomeIcons.chair),
-    'Academic' : ReqInfo(Colors.pinkAccent, FontAwesomeIcons.graduationCap),
-    'Meeting' : ReqInfo(Colors.orange.shade400, FontAwesomeIcons.chalkboardUser)
-  };
+class EventMini {
+  String title, link, cred, start, end;
+  DateTime date;
 
-  return reqLibrary[name] ?? ReqInfo(Colors.grey.shade500, FontAwesomeIcons.folder);
+  EventMini(
+      {required this.title,
+      required this.link,
+      required this.date,
+      this.cred = "None",
+      this.start = "None",
+      this.end = "None"});
+}
+
+class EventFull extends EventMini {
+  String loc, desc, creator;
+  List<Participant> participants;
+
+  EventFull(
+      {required title,
+      required link,
+      required date,
+      cred = "None",
+      start = "None",
+      end = "None",
+      required this.loc,
+      required this.desc,
+      required this.creator,
+      required this.participants})
+      : super(
+            title: title,
+            link: link,
+            date: date,
+            cred: cred,
+            start: start,
+            end: end);
+}
+
+class Participant {
+  final String name;
+  String comment;
+
+  Participant(this.name, [this.comment = 'n/a']);
+}
+
+Map<int, String> weekdayLibrary = {
+  1: 'M',
+  2: 'T',
+  3: 'W',
+  4: 'Th',
+  5: 'F',
+  6: 'Sa',
+  7: 'Su'
+};
+
+Map<String, CredInfo> reqLibrary = {
+  'Service': CredInfo(Colors.red, FontAwesomeIcons.handshakeAngle),
+  'Fellowship': CredInfo(Colors.green, FontAwesomeIcons.peopleGroup),
+  'Leadership': CredInfo(Colors.purple, FontAwesomeIcons.flag),
+  'Fundraising':
+  CredInfo(Colors.pink, FontAwesomeIcons.moneyBillWave),
+  'Interchapter': CredInfo(Colors.brown, FontAwesomeIcons.car),
+  'Philanthropy': CredInfo(Colors.cyan, FontAwesomeIcons.children),
+  'External Relations':
+  CredInfo(Colors.deepPurple, FontAwesomeIcons.addressCard),
+  'Special Fellowship': CredInfo(Colors.blue, FontAwesomeIcons.star),
+  'Required Events':
+  CredInfo(Colors.lime, FontAwesomeIcons.calendarCheck),
+  'Open Forum': CredInfo(Colors.red.shade900, FontAwesomeIcons.comments),
+  'Chair': CredInfo(Colors.lightBlueAccent, FontAwesomeIcons.chair),
+  'Academic': CredInfo(Colors.pinkAccent, FontAwesomeIcons.graduationCap),
+  'Meeting': CredInfo(Colors.orange, FontAwesomeIcons.chalkboardUser)
+};
+
+CredInfo pullCredInfo(String name) {
+  for (MapEntry entry in reqLibrary.entries) {
+    if (name.toUpperCase().contains(entry.key.toUpperCase())) {
+      return entry.value;
+    }
+  }
+
+  return CredInfo(Colors.grey.shade500, FontAwesomeIcons.folder);
 }
