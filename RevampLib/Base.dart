@@ -4,6 +4,9 @@ import '../Homepage/HomePage.dart';
 import '../http_Directory/http.dart';
 import 'package:example/InterviewTracker/PledgeTracker.dart';
 import '../RevampLib/Home.dart';
+import '../RevampLib/Calendar.dart';
+import 'Home_HTTP.dart';
+import 'UserData.dart';
 
 class Base extends StatefulWidget {
   const Base({Key? key}) : super(key: key);
@@ -16,10 +19,20 @@ class _BaseState extends State<Base> {
   int _selectedIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  final content = [
+    Home(info: scrapeUserInfo(), content: scrapeUserContent()),
+    Calendar()
+  ];
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Colors.white,
-        body: Home(),
+        body: content[_selectedIndex],
         bottomNavigationBar: Container(  // BOTTOM NAVIGATION BAR
           width: MediaQuery.of(context).size.width,
           height: 80,

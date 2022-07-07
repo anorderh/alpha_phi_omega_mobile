@@ -6,7 +6,6 @@ import 'package:example/Backend/apo_objects.dart';
 
 String base_url = 'https://www.apoonline.org/alphadelta/memberhome.php';
 
-
 Map<String, String> data = {
   'redirect': 'memberhome.php',
   'submit': 'Log In',
@@ -77,7 +76,7 @@ Future<Map<String, dynamic>> profileDetails(BeautifulSoup soup, String email) as
       soup.findAll('div', attrs: {'class':'calendar-infobox'}));
 
   return details;
-  }
+}
 
 
   String _spaceString(String input) {
