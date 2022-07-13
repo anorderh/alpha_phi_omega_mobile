@@ -1,45 +1,59 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:example/EventPage/EventPage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../Homepage/HomePage.dart';
-import '../http_Directory/http.dart';
 import '../RevampLib/AppData.dart';
-import 'package:example/InterviewTracker/PledgeTracker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:calendar_view/calendar_view.dart';
-import '../RevampLib/AppData.dart';
 import '../RevampLib/Settings.dart';
+import 'EventView.dart';
+import 'Home_HTTP.dart';
 import 'UserData.dart';
 import 'package:expandable_page_view/expandable_page_view.dart';
-import '../RevampLib/Home_HTTP.dart';
 
 // HOME WIDGET
 class Home extends StatefulWidget {
   final Future<bool> info;
   final Future<bool> content;
 
-  const Home({required this.info, required this.content, Key? key})
+  const Home(
+      {required this.info,
+      required this.content,
+      Key? key})
       : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
-  int homeIndex = 0;
+class _HomeState extends State<Home> with SingleTickerProviderStateMixin{
+  late Future<bool> activeContent;
+  late PageController pageController;
+  late TabController tabController;
+  late Maintenance maintenance;
 
   @override
   void initState() {
-    // TODO: implement initState
+    activeContent = widget.content;
+
     super.initState();
   }
 
   @override
-  void dispose() {
-    super.dispose();
+  void didChangeDependencies() {
+    maintenance = MainApp.of(context).maintenance;
+    pageController = PageController(initialPage: maintenance.homeIndex);
+    tabController = TabController(initialIndex: maintenance.homeIndex, length: 2, vsync: this);
+    maintenance.setRefresh(_refreshContent);
+
+    super.didChangeDependencies();
+  }
+
+  void _refreshContent() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {
+      activeContent = scrapeUserContent(MainUser.of(context).data);
+      pageController = PageController(initialPage: maintenance.homeIndex);
+    }));
   }
 
   @override
@@ -63,7 +77,11 @@ class _HomeState extends State<Home> {
               ),
             ),
           ),
-          UserContent(scrape: widget.content)
+          UserContent(
+            scrape: activeContent,
+            pageC: pageController,
+            tabC: tabController,
+          )
         ]));
   }
 }
@@ -78,8 +96,7 @@ class CheckSettingsButton extends StatelessWidget {
       alignment: Alignment.topLeft,
       child: IconButton(
           onPressed: () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (context) => Settings()));
+            pushToNew(context: context, withNavBar: false, page: Settings());
           },
           icon: const Icon(FontAwesomeIcons.bars, color: Colors.black)),
     );
@@ -97,6 +114,14 @@ class UserHeader extends StatefulWidget {
 }
 
 class _UserHeaderState extends State<UserHeader> {
+  late UserData user;
+
+  @override
+  void didChangeDependencies() {
+    user = MainUser.of(context).data;
+    super.didChangeDependencies();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
@@ -127,7 +152,7 @@ class _UserHeaderState extends State<UserHeader> {
                         children: [
                           Container(
                             child: Text(
-                              mainUser.greeting!,
+                              user.greeting!,
                               style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 18,
@@ -137,14 +162,14 @@ class _UserHeaderState extends State<UserHeader> {
                           ),
                           Container(
                               child: Text(
-                            mainUser.name!.split(" ")[0],
+                            user.name!.split(" ")[0],
                             style: TextStyle(
                               fontSize: 36,
                             ),
                           )),
                           Container(
                               child: Text(
-                            mainUser.position!,
+                            user.position!,
                             style: TextStyle(
                                 color: Colors.blue,
                                 fontSize: 18,
@@ -160,7 +185,7 @@ class _UserHeaderState extends State<UserHeader> {
                             shape: BoxShape.circle,
                             image: DecorationImage(
                                 image: CachedNetworkImageProvider(
-                                    mainUser.pictureURL!),
+                                    user.pictureURL!),
                                 fit: BoxFit.cover)),
                       )
                     ],
@@ -248,39 +273,48 @@ class _HomeTabBarState extends State<HomeTabBar> {
 
 class UserContent extends StatefulWidget {
   final Future<bool> scrape;
+  final PageController pageC;
+  final TabController tabC;
 
-  const UserContent({required this.scrape, Key? key}) : super(key: key);
+  const UserContent(
+      {required this.scrape,
+      Key? key, required this.pageC, required this.tabC})
+      : super(key: key);
 
   @override
   _UserContentState createState() => _UserContentState();
 }
 
-class _UserContentState extends State<UserContent>
-    with SingleTickerProviderStateMixin {
-  int homeIndex = 0;
-  late PageController _pageController;
-  late TabController _tabController;
+class _UserContentState extends State<UserContent> {
+  late UserData user;
+  late Maintenance maintenance;
 
   @override
   void initState() {
-    _pageController = PageController(initialPage: homeIndex);
-    _tabController = TabController(length: 2, vsync: this);
-
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    user = MainUser.of(context).data;
+    maintenance = MainApp.of(context).maintenance;
+    super.didChangeDependencies();
   }
 
   void setIndex(int newIndex) {
     setState(() {
-      homeIndex = newIndex;
-      _pageController.animateToPage(newIndex,
+      maintenance.setIndex(newIndex);
+      widget.pageC.animateToPage(newIndex,
           duration: Duration(milliseconds: 250), curve: Curves.ease);
-      _tabController.animateTo(newIndex,
+      widget.tabC.animateTo(newIndex,
           duration: Duration(milliseconds: 250), curve: Curves.ease);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    print("home content built");
+
     return FutureBuilder<bool>(
         future: widget.scrape,
         builder: (context, snapshot) {
@@ -311,17 +345,20 @@ class _UserContentState extends State<UserContent>
               return Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  HomeTabBar(_tabController, setIndex),
+                  HomeTabBar(widget.tabC, setIndex),
                   ExpandablePageView(
                     onPageChanged: (pageIndex) {
-                      if (!_tabController.indexIsChanging) {
+                      if (!widget.tabC.indexIsChanging) {
                         setState(() {
                           setIndex(pageIndex);
                         });
                       }
                     },
-                    controller: _pageController,
-                    children: [UserReqs(), UserEvents()],
+                    controller: widget.pageC,
+                    children: [
+                      UserReqs(user: user, reqReload: snapshot.data!),
+                      UserEvents(user: user, eventReload: snapshot.data!)
+                    ],
                   )
                 ],
               );
@@ -337,7 +374,10 @@ class _UserContentState extends State<UserContent>
 }
 
 class UserReqs extends StatefulWidget {
-  const UserReqs({Key? key}) : super(key: key);
+  final UserData user;
+  final bool reqReload;
+
+  const UserReqs({Key? key, required this.reqReload, required this.user}) : super(key: key);
 
   @override
   _UserReqsState createState() => _UserReqsState();
@@ -346,10 +386,11 @@ class UserReqs extends StatefulWidget {
 class _UserReqsState extends State<UserReqs> {
   late double reqListHeight;
   int reqTileHeight = 200; //pixels
-  List<String> reqKeys = mainUser.reqs.keys.toList();
+  late List<String> reqKeys;
 
   @override
   void initState() {
+    reqKeys = widget.user.reqs.keys.toList();
     calcReqListHeight();
     super.initState();
   }
@@ -382,7 +423,7 @@ class _UserReqsState extends State<UserReqs> {
               CredInfo curInfo = pullCredInfo(reqKeys[index]);
 
               double credFontSize = 60;
-              List<double> credValues = mainUser.reqs[reqKeys[index]]!;
+              List<double> credValues = widget.user.reqs[reqKeys[index]]!;
               if (credValues[0] % 1 != 0 || credValues[0] > 10) {
                 credFontSize *= 0.5;
               }
@@ -508,15 +549,20 @@ class _UserReqsState extends State<UserReqs> {
       );
     } else {
       return Container(
+          margin: EdgeInsets.only(top: 20, left: 20, right: 20),
           alignment: Alignment.center,
           child: Text("You currently do not have any requirements.",
               style: GoogleFonts.dmSerifDisplay(fontSize: 24)));
     }
   }
+
 }
 
 class UserEvents extends StatefulWidget {
-  const UserEvents({Key? key}) : super(key: key);
+  final UserData user;
+  final bool eventReload;
+
+  const UserEvents({Key? key, required this.eventReload, required this.user}) : super(key: key);
 
   @override
   _UserEventsState createState() => _UserEventsState();
@@ -533,23 +579,29 @@ class _UserEventsState extends State<UserEvents> {
   }
 
   void calcEventListHeight() {
-    eventListHeight = (eventTileHeight + 40) * mainUser.upcomingEvents.length * 1.0;
+    double temp = (eventTileHeight + 40) * widget.user.upcomingEvents.length * 1.0;
+
+    if (temp < 350) {
+      eventListHeight = 350;
+    } else {
+      eventListHeight = temp;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (mainUser.upcomingEvents.isNotEmpty) {
+    if (widget.user.upcomingEvents.isNotEmpty) {
       return Container(
           height: eventListHeight,
           child: ListView.builder(
             padding: EdgeInsets.only(top: 5, left: 25, right: 25),
             physics: NeverScrollableScrollPhysics(),
-            itemCount: mainUser.upcomingEvents.length,
+            itemCount: widget.user.upcomingEvents.length,
             itemBuilder: (context, index) {
-              CredInfo info = pullCredInfo(mainUser.upcomingEvents[index].cred);
+              CredInfo info = pullCredInfo(widget.user.upcomingEvents[index].cred);
               bool hasTimes =
-                  (mainUser.upcomingEvents[index].start != null) ? true : false;
-              EventFull event = mainUser.upcomingEvents[index];
+                  (widget.user.upcomingEvents[index].start != null) ? true : false;
+              EventFull event = widget.user.upcomingEvents[index];
 
               return Padding(
                 padding: EdgeInsets.only(top: 8),
@@ -650,16 +702,24 @@ class _UserEventsState extends State<UserEvents> {
                       ],
                     ),
                   ),
-                  onTap: () {},
+                  onTap: () {
+                    pushToNew(
+                        context: context,
+                        withNavBar: true,
+                        page: EventView(event: event, info: info));
+                  },
                 ),
               );
             },
           ));
     } else {
       return Container(
-          alignment: Alignment.center,
+          height: eventListHeight,
+          padding: EdgeInsets.only(top: 20, left: 20, right: 20),
+          alignment: Alignment.topCenter,
           child: Text("You are currently not signed up for any events.",
-              style: GoogleFonts.dmSerifDisplay(fontSize: 24)));
+              style: GoogleFonts.dmSerifDisplay(
+                  fontSize: 20, fontStyle: FontStyle.italic)));
     }
   }
 }

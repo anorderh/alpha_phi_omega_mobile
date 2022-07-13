@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import '../RevampLib/Login.dart';
+import 'Login.dart';
 import '../Frontend/bottom_nav.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:example/EventPage/EventDialog/calcDate.dart';
 import 'package:calendar_view/calendar_view.dart';
 import 'package:flutter/services.dart';
+import 'package:example/RevampLib/UserData.dart';
+import 'package:example/RevampLib/AppData.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,12 +26,20 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return CalendarControllerProvider(
         controller: EventController(),
-        child: MaterialApp(
-          title: 'Flutter Demo',
-          theme: ThemeData(
-              primarySwatch: Colors.blue,
-              textTheme: GoogleFonts.dmSerifDisplayTextTheme()),
-          home: LoginBody(),
+        child: System(
+          version: "1.0",
+          lastUpdated: DateTime(2022, 7, 13),
+          currentDate: DateTime(2022, 7, 19),
+          child: MainUser(
+            data: UserData(),
+            child: MaterialApp(
+              title: 'Flutter Demo',
+              theme: ThemeData(
+                  primarySwatch: Colors.blue,
+                  textTheme: GoogleFonts.dmSerifDisplayTextTheme()),
+              home: LoginBody(),
+            ),
+          ),
         ));
   }
 }

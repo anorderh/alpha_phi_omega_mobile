@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Backend/apo_objects.dart';
 import '../http_Directory/httpEvents.dart' as httpEvent;
-import '../EventPage/ParticipantTiles.dart';
 import '../EventPage/_EventSpec.dart';
 import 'EventButton.dart';
 
@@ -167,11 +166,7 @@ class _EventSingleState extends State<EventSingle> {
             children: <Widget>[
               EventButton(userJoined: userJoined, join: joinEvent, leave: leaveEvent),
               info(),
-              Card(
-                  child:
-                      ParticipantTiles(participants: widget.event.participants))
-            ],
-          ))),
+              ]))),
     );
   }
 

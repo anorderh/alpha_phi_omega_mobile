@@ -3,26 +3,29 @@ import 'package:beautiful_soup_dart/beautiful_soup.dart';
 import 'package:example/RevampLib/AppData.dart';
 import 'package:example/RevampLib/UserData.dart';
 import 'package:calendar_view/calendar_view.dart';
+import 'package:intl/intl.dart';
 import 'CalendarHelpers.dart';
 
-Future<bool> startEventScrapping(DateTime date, bool forceRefresh) async {
-  mainCalendar.focusedDate = date;
+Future<bool> startEventScrapping(UserData user, CalendarData calendar,
+    DateTime date, bool forceRefresh) async {
+  calendar.setFocusedDate(date);
   int eventCount = 0;
 
   // check if calendar present
-  if (mainCalendar.monthProcessed == null ||
-      (forceRefresh || mainCalendar.monthProcessed != date.month)) {
-    await setCalendar(date);
+  if (calendar.monthProcessed == null ||
+      (forceRefresh || calendar.monthProcessed != date.month)) {
+    user.http.setCalendarResponse(await setCalendar(user.http.getHTTPTags(), date));
+    calendar.setMonthProcessed(date.month);
   }
 
   // retrieve and pull data from day's events
-  eventCount = await pullEventsFrom(date.day);
+  eventCount = await pullEventsFrom(user, calendar, date.day);
 
   // return bool stating if eventList empty
   return eventCount != 0;
 }
 
-Future<void> setCalendar(DateTime date) async {
+Future<BeautifulSoup> setCalendar(Map httpTags, DateTime date) async {
   http.Response raw;
 
   String calendarUrl = base_url +
@@ -32,40 +35,40 @@ Future<void> setCalendar(DateTime date) async {
 
   raw = await http.post(
     Uri.parse(calendarUrl),
-    body: mainUser.http.data,
-    headers: mainUser.http.headers,
+    body: httpTags['data'],
+    headers: httpTags['headers'],
   );
 
-  mainCalendar.monthProcessed = date.month;
-  mainUser.http.calendarResponse = BeautifulSoup(raw.body);
+  return BeautifulSoup(raw.body);
 }
 
-Future<int> pullEventsFrom(int day) async {
+Future<int> pullEventsFrom(UserData user, CalendarData calendar, int day) async {
   List<Bs4Element> eventBlocks;
   List<EventFull> results = [];
   int eventQuantity = 0;
 
-  for (Bs4Element tag in mainUser.http.calendarResponse
+  for (Bs4Element tag in user.http.calendarResponse
       .findAll('div', attrs: {'class': 'calendar-daynumber'})) {
     if (int.parse(tag.text.toString()) == day) {
       eventBlocks = tag.nextElement!.children;
 
       // generating futures from all Event Blocks and processing concurrently
       results = await Future.wait(Iterable.generate(eventBlocks.length, (i) {
-        return handleEvent(eventBlocks[i].a!['href']!, ++eventQuantity);
+        return handleEvent(user.http.getHTTPTags(), eventBlocks[i].a!['href']!, ++eventQuantity);
       }));
 
       // add to controller
       for (EventFull event in results) {
         if (event.start != null) {
-          mainCalendar.eventController.add(CalendarEventData<EventFull>(
+          calendar.eventController.add(CalendarEventData<EventFull>(
               title: event.title,
               event: event,
               startTime: event.start,
               endTime: event.end,
               date: event.date));
         } else {
-          mainCalendar.allDayEvents[mainCalendar.focusedDate.weekday - 1].add(event);
+          calendar.allDayEvents[calendar.focusedDate.weekday - 1]
+              .add(event);
         }
       }
 
@@ -76,19 +79,21 @@ Future<int> pullEventsFrom(int day) async {
   return eventQuantity;
 }
 
-Future<EventFull> handleEvent(String link, int eventNumber) async {
+Future<EventFull> handleEvent(Map httpTags, String link, int eventNumber) async {
   print("handled event #" + eventNumber.toString());
   List<DateTime> eventTimes; // [{date}, start, end]
+  DateTime tempDate;
+  List<String> temp = [];
 
   var response = await http.post(
     Uri.parse(link),
-    body: mainUser.http.data,
-    headers: mainUser.http.headers,
+    body: httpTags['data'],
+    headers: httpTags['headers'],
   );
 
   // getting event page response & base header
-  mainUser.http.eventResponse = BeautifulSoup(response.body);
-  Bs4Element header = mainUser.http.eventResponse.find('div', attrs: {'class': 'row'})!;
+  BeautifulSoup eventResponse = BeautifulSoup(response.body);
+  Bs4Element header = eventResponse.find('div', attrs: {'class': 'row'})!;
 
   // retrieving Event date
   eventTimes = deriveTimes(header
@@ -98,13 +103,13 @@ Future<EventFull> handleEvent(String link, int eventNumber) async {
 
   // Event object
   EventFull event = EventFull(
-      title: mainUser.http.eventResponse
+      title: eventResponse
           .find('h1', attrs: {'style': 'margin-bottom:15px;'})!
           .a!
           .text,
       link: link,
       date: eventTimes[0],
-      participants: []);
+      id: link.replaceAll(base_url + '?action=eventsignup&eventid=', ''));
 
   // implementing start & end times, if applicable
   if (eventTimes.length > 1 && eventTimes[1] != eventTimes[2]) {
@@ -142,6 +147,40 @@ Future<EventFull> handleEvent(String link, int eventNumber) async {
         .find('div', attrs: {'onmouseover': 'Tip(\'Event Information\')'})!
         .parent!
         .text;
+  } catch (e) {}
+  ;
+
+  try {
+    // lock
+    temp = [
+      header
+          .find('div', attrs: {'onmouseover': 'Tip(\'Sign-ups Lock\')'})!
+          .parent!
+          .text
+    ];
+
+    temp = temp[0].replaceAll(" Sign-ups lock on ", "").split(" at ");
+    tempDate = DateFormat("MMM d").parse(temp[0]);
+    tempDate = DateTime(eventTimes[0].year, tempDate.month, tempDate.day);
+
+    event.lock = getTimeinDateTime(tempDate, temp[1]);
+  } catch (e) {}
+  ;
+
+  try {
+    // close
+    temp = [
+      header
+          .find('div', attrs: {'onmouseover': 'Tip(\'Sign-ups Close\')'})!
+          .parent!
+          .text
+    ];
+
+    temp = temp[0].replaceAll(" Sign-ups close on ", "").split(" at ");
+    tempDate = DateFormat("MMM d").parse(temp[0]);
+    tempDate = DateTime(eventTimes[0].year, tempDate.month, tempDate.day);
+
+    event.close = getTimeinDateTime(tempDate, temp[1]);
   } catch (e) {}
   ;
 

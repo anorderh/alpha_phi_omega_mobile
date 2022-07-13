@@ -3,12 +3,31 @@ import 'package:http/http.dart' as http;
 import 'package:beautiful_soup_dart/beautiful_soup.dart';
 import 'package:example/RevampLib/AppData.dart';
 import 'package:calendar_view/calendar_view.dart';
+import 'package:flutter/material.dart';
 
 ///////////////
 // USER DATA //
 ///////////////
 
-UserData mainUser = UserData();
+class MainUser extends InheritedWidget {
+  final UserData data;
+
+  const MainUser({
+    Key? key,
+    required this.data,
+    required Widget child,
+  }) : super(key: key, child: child);
+
+  static MainUser of(BuildContext context) {
+    final MainUser? result =
+        context.dependOnInheritedWidgetOfExactType<MainUser>();
+    assert(result != null, 'No MainUser found in context');
+    return result!;
+  }
+
+  @override
+  bool updateShouldNotify(MainUser oldWidget) => data != oldWidget.data;
+}
 
 // managing user HTTP information
 class UserHTTP {
@@ -16,7 +35,6 @@ class UserHTTP {
   late BeautifulSoup profileResponse;
   late BeautifulSoup upcomingEventsResponse;
   late BeautifulSoup calendarResponse;
-  late BeautifulSoup eventResponse;
   bool validLogin = false;
 
   Map<String, String> data = {
@@ -29,12 +47,39 @@ class UserHTTP {
     'Accept-Encoding': 'gzip, deflate, br'
   };
 
+  Map<String, Map<String, String>> getHTTPTags() {
+    return {
+      'data': data,
+      'headers': headers
+    };
+  }
+
   void setCSRFToken(String token) {
     data['__csrf_magic'] = token;
   }
 
   void setPHPCookie(String cookie) {
     headers['Cookie'] = cookie;
+  }
+
+  void setHomeResponse(BeautifulSoup soup) {
+    homeResponse = soup;
+  }
+
+  void setProfileResponse(BeautifulSoup soup) {
+    profileResponse = soup;
+  }
+
+  void setUpcomingEventsResponse(BeautifulSoup soup) {
+    upcomingEventsResponse = soup;
+  }
+
+  void setCalendarResponse(BeautifulSoup soup) {
+    calendarResponse = soup;
+  }
+
+  void setLogin(bool status) {
+    validLogin = status;
   }
 }
 
@@ -61,6 +106,30 @@ class UserData {
     reqs = {};
     upcomingEvents = [];
   }
+
+  void setHTTP(UserHTTP newHttp) {
+    http = newHttp;
+  }
+
+  void setInfo({
+    required String newName,
+    required String newEmail,
+    required String newPictureURL,
+    required String newPosition,
+    required String newGreeting,
+  }) {
+    name = newName;
+    email = newEmail;
+    pictureURL = newPictureURL;
+    position = newPosition;
+    greeting = newGreeting;
+  }
+
+  void setReqs(Map<String, List<double>> newReqs) {
+    reqs = newReqs;
+  }
+
+  void setUpcomingEvents(List<EventFull> newUpcoming) {
+    upcomingEvents = newUpcoming;
+  }
 }
-
-

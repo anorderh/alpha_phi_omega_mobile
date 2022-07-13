@@ -23,15 +23,17 @@ class Settings extends StatefulWidget {
 
 class _SettingsState extends State<Settings> {
   late bool loadStatus;
+  late UserData user;
 
   @override
-  void initState() {
+  void didChangeDependencies() {
+    user = MainUser.of(context).data;
     loadStatus = checkLoad();
-    super.initState();
+    super.didChangeDependencies();
   }
 
   bool checkLoad() {
-    if (mainUser.name == null || mainUser.email == null || mainUser.position == null) {
+    if (user.name == null || user.email == null || user.position == null) {
       return false;
     } else {
       return true;
@@ -59,7 +61,7 @@ class _SettingsState extends State<Settings> {
                 ),
                 Expanded(
                     child: loadStatus
-                        ? UserCard()
+                        ? UserCard(user: user)
                         : Container(
                             alignment: Alignment.center,
                             child: Text("User data did not finish loading.",
@@ -71,7 +73,7 @@ class _SettingsState extends State<Settings> {
             flex: 4,
             child: Container(
               // color: Colors.red,
-              child: SettingsButtons(),
+              child: SettingsButtons(user: user),
             ),
           ),
           Flexible(
@@ -80,13 +82,13 @@ class _SettingsState extends State<Settings> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("V " + versionNumber.toString(),
+                  Text("V " + System.of(context).version,
                       style:
                           TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                   Text(
                       "Last Updated " +
                           DateFormat.yMMMd('en_US')
-                              .format(lastUpdated)
+                              .format(System.of(context).lastUpdated)
                               .toString(),
                       style:
                           TextStyle(fontSize: 14, color: Colors.grey.shade600))
@@ -101,7 +103,9 @@ class _SettingsState extends State<Settings> {
 }
 
 class UserCard extends StatelessWidget {
-  const UserCard({Key? key}) : super(key: key);
+  final UserData user;
+
+  const UserCard({Key? key, required this.user}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +116,7 @@ class UserCard extends StatelessWidget {
         decoration: BoxDecoration(
             shape: BoxShape.circle,
             image: DecorationImage(
-                image: CachedNetworkImageProvider(mainUser.pictureURL!),
+                image: CachedNetworkImageProvider(user.pictureURL!),
                 fit: BoxFit.cover)),
       ),
       FittedBox(
@@ -120,7 +124,7 @@ class UserCard extends StatelessWidget {
         child: Container(
             padding: EdgeInsets.only(top: 15),
             child: Text(
-              mainUser.name!,
+              user.name!,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             )),
       ),
@@ -128,7 +132,7 @@ class UserCard extends StatelessWidget {
         fit: BoxFit.scaleDown,
         child: Container(
             child: Text(
-          mainUser.email!,
+          user.email!,
           style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
         )),
       )
@@ -137,10 +141,12 @@ class UserCard extends StatelessWidget {
 }
 
 class SettingsButtons extends StatelessWidget {
-  const SettingsButtons({Key? key}) : super(key: key);
+  final UserData user;
+
+  const SettingsButtons({Key? key, required this.user}) : super(key: key);
 
   void Logout(BuildContext context) {
-    mainUser.resetData();
+    user.resetData();
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
@@ -195,7 +201,7 @@ class SettingsButtons extends StatelessWidget {
                     color: Colors.black,
                   ),
                   title: Text(
-                    "Features?",
+                    "Features",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                   trailing: Icon(FontAwesomeIcons.angleRight),

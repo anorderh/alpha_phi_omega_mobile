@@ -14,8 +14,12 @@ import '../RevampLib/UserData.dart';
 import 'package:calendar_view/calendar_view.dart';
 import 'package:async/async.dart';
 
+import 'EventView.dart';
+
 class Calendar extends StatefulWidget {
-  const Calendar({Key? key}) : super(key: key);
+  final DateTime current;
+
+  const Calendar({Key? key, required this.current}) : super(key: key);
 
   @override
   _CalendarState createState() => _CalendarState();
@@ -23,6 +27,9 @@ class Calendar extends StatefulWidget {
 
 class _CalendarState extends State<Calendar>
     with SingleTickerProviderStateMixin {
+  late UserData user;
+  late CalendarData mainCalendar;
+
   late DateTime date;
   late List<DateTime> weeklyDates;
 
@@ -36,31 +43,37 @@ class _CalendarState extends State<Calendar>
 
   @override
   void initState() {
-    // TODO: implement initState
-    // initializing calendar data
-    mainCalendar.resetData();
-    date = mainCalendar.currentDate;
+    // initializing dates & indexes
+    date = widget.current;
     weeklyDates = getWeekDates(date);
-
-    // finding Date index and scrapping accordingly
     dayIndex = date.weekday - 1;
-    weeklyScrapes[dayIndex] = startEventScrapping(weeklyDates[dayIndex], false);
 
-    // setting controllers
-    _dayController = TabController(length: 7, vsync: this);
+    // initializing controllers
     _pageController = PageController(initialPage: dayIndex);
-    _dayController.index = dayIndex;
-
+    _dayController = TabController(initialIndex: dayIndex, length: 7, vsync: this);
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    // inherited widgets
+    user = MainUser.of(context).data;
+
+    mainCalendar = MainApp.of(context).mainCalendar;
+    mainCalendar.resetData();
+
+    // processing respective weekday
+    weeklyScrapes[dayIndex] = startEventScrapping(user, mainCalendar, weeklyDates[dayIndex], false);
+
+    super.didChangeDependencies();
   }
 
   void setDay(int newDay) {
     setState(() {
       date = date.add(Duration(days: newDay - dayIndex));
       if (weeklyScrapes[newDay] == null) {
-        weeklyScrapes[newDay] = startEventScrapping(weeklyDates[newDay], false);
+        weeklyScrapes[newDay] = startEventScrapping(user, mainCalendar, weeklyDates[newDay], false);
       }
-      ;
 
       if ((dayIndex - newDay).abs() > 1) {
         _pageController.jumpToPage(newDay);
@@ -104,6 +117,7 @@ class _CalendarState extends State<Calendar>
                       Text(DateFormat.yMMMMd('en_US').format(date),
                           style: GoogleFonts.dmSerifDisplay(fontSize: 32)),
                       CalendarTabBar(
+                          current: widget.current,
                           controller: _dayController,
                           setIndex: setDay,
                           dates: weeklyDates)
@@ -154,6 +168,7 @@ class _CalendarState extends State<Calendar>
 }
 
 class CalendarTabBar extends StatefulWidget {
+  final DateTime current;
   final TabController controller;
   final Function setIndex;
   final List<DateTime> dates;
@@ -162,7 +177,7 @@ class CalendarTabBar extends StatefulWidget {
       {required this.controller,
       required this.setIndex,
       required this.dates,
-      Key? key})
+      Key? key, required this.current})
       : super(key: key);
 
   @override
@@ -170,6 +185,20 @@ class CalendarTabBar extends StatefulWidget {
 }
 
 class _CalendarTabBarState extends State<CalendarTabBar> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  bool checkToday(DateTime date) {
+    if (widget.current.day == date.day &&
+        widget.current.month == date.month &&
+        widget.current.year == date.year) {
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -193,13 +222,13 @@ class _CalendarTabBarState extends State<CalendarTabBar> {
           });
         },
         tabs: [
-          DayLabel("M", widget.dates[0]),
-          DayLabel("T", widget.dates[1]),
-          DayLabel("W", widget.dates[2]),
-          DayLabel("Th", widget.dates[3]),
-          DayLabel("F", widget.dates[4]),
-          DayLabel("Sa", widget.dates[5]),
-          DayLabel("Su", widget.dates[6])
+          DayLabel("M", checkToday(widget.dates[0])),
+          DayLabel("T", checkToday(widget.dates[1])),
+          DayLabel("W", checkToday(widget.dates[2])),
+          DayLabel("Th", checkToday(widget.dates[3])),
+          DayLabel("F", checkToday(widget.dates[4])),
+          DayLabel("Sa", checkToday(widget.dates[5])),
+          DayLabel("Su", checkToday(widget.dates[6]))
         ],
       ),
     );
@@ -208,25 +237,12 @@ class _CalendarTabBarState extends State<CalendarTabBar> {
 
 class DayLabel extends StatelessWidget {
   final String day;
-  final DateTime date;
+  final bool isToday;
 
-  const DayLabel(this.day, this.date, {Key? key}) : super(key: key);
-
-  bool compareDateDay() {
-    DateTime current = mainCalendar.currentDate;
-
-    if (current.day == date.day &&
-        current.month == date.month &&
-        current.year == date.year) {
-      return true;
-    }
-    return false;
-  }
+  const DayLabel(this.day, this.isToday, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    bool isToday = compareDateDay();
-
     return Container(
         padding: EdgeInsets.all(5),
         decoration: BoxDecoration(
@@ -288,7 +304,7 @@ class _CalendarDayState extends State<CalendarDayView> {
           } else if (snapshot.hasData) {
             if (snapshot.data!) {
               return DayView(
-                controller: mainCalendar.eventController,
+                controller: MainApp.of(context).mainCalendar.eventController,
                 eventTileBuilder: (date, events, bounds, start, end) {
                   Widget timeSubtitle;
                   double allowedLines;
@@ -338,7 +354,9 @@ class _CalendarDayState extends State<CalendarDayView> {
 
                   return ElevatedButton(
                       onPressed: () {
-                        print("button pressed");
+                        pushToNew(context: context,
+                            withNavBar: true,
+                            page: EventView(event: curEvent, info: credInfo));
                       },
                       style: ElevatedButton.styleFrom(
                         onPrimary: HSLColor.fromColor(credInfo.color)
@@ -460,13 +478,11 @@ class _AllDayEventsState extends State<AllDayEvents> {
   List<Widget> allDayBlocks = [];
 
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-
-    for (EventFull event in mainCalendar.allDayEvents[widget.weeklyIndex]) {
+  void didChangeDependencies() {
+    for (EventFull event in MainApp.of(context).mainCalendar.allDayEvents[widget.weeklyIndex]) {
       allDayBlocks.add(getChild(event));
     }
+    super.didChangeDependencies();
   }
 
   Widget getChild(EventFull event) {
@@ -475,7 +491,9 @@ class _AllDayEventsState extends State<AllDayEvents> {
     return Expanded(
       child: ElevatedButton(
           onPressed: () {
-            print("button pressed");
+            pushToNew(context: context,
+                withNavBar: true,
+                page: EventView(event: event, info: info));
           },
           style: ElevatedButton.styleFrom(
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,

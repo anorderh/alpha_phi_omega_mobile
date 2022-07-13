@@ -5,35 +5,35 @@ import 'package:example/RevampLib/AppData.dart';
 import 'CalendarHelpers.dart';
 import 'Calendar_HTTP.dart';
 
-Future<bool> scrapeUserInfo() async {
+Future<bool> scrapeUserInfo(UserData user, DateTime currentDate) async {
   try {
     http.Response raw;
     String userInfoURL = base_url + '?' + profile_action;
 
     raw = await http.post(
       Uri.parse(userInfoURL),
-      body: mainUser.http.data,
-      headers: mainUser.http.headers,
+      body: user.http.data,
+      headers: user.http.headers,
     );
-    mainUser.http.profileResponse = BeautifulSoup(raw.body);
+    user.http.profileResponse = BeautifulSoup(raw.body);
 
-    mainUser.name = mainUser.http.profileResponse
+    user.name = user.http.profileResponse
         .find('div', attrs: {'class': 'content-header'})!
         .children[0]
         .text;
 
-    mainUser.position = mainUser.http.profileResponse
+    user.position = user.http.profileResponse
         .find('div', attrs: {'class': 'content-subheader'})!
         .text
         .split(" of ")[0]
         .substring(1);
 
-    mainUser.pictureURL = "http://www.apoonline.org/alphadelta/" +
-        mainUser.http.profileResponse.find('img')!['src']!;
+    user.pictureURL = "http://www.apoonline.org/alphadelta/" +
+        user.http.profileResponse.find('img')!['src']!;
 
-    mainUser.greeting = deriveGreeting(mainCalendar.currentDate);
+    user.greeting = deriveGreeting(currentDate);
 
-    print("USER INFO:\n${mainUser.name}\n${mainUser.position}\n");
+    print("USER INFO:\n${user.name}\n${user.position}\n");
   } catch (e) {
     print(e.toString());
     return false;
@@ -41,9 +41,9 @@ Future<bool> scrapeUserInfo() async {
   return true;
 }
 
-Future<bool> scrapeUserContent() async {
+Future<bool> scrapeUserContent(UserData user) async {
   try {
-    await Future.wait([scrapeReqs(), scrapeUpcomingEvents()]);
+    await Future.wait([scrapeReqs(user), scrapeUpcomingEvents(user)]);
   } catch (e) {
     print(e.toString());
     return false;
@@ -52,13 +52,13 @@ Future<bool> scrapeUserContent() async {
   return true;
 }
 
-Future<void> scrapeReqs() async {
-  mainUser.reqs = mapReqs(
-      _stringsFromTags(mainUser.http.homeResponse.findAll(
+Future<void> scrapeReqs(UserData user) async {
+  user.reqs = mapReqs(
+      _stringsFromTags(user.http.homeResponse.findAll(
           // credit names
           'a',
           attrs: {'style': 'margin-bottom: .5em;display: block;color:black;'})),
-      _stringsFromTags(mainUser.http.homeResponse.findAll(
+      _stringsFromTags(user.http.homeResponse.findAll(
           // credit amounts
           'span',
           attrs: {'style': 'float:right; color:grey;'})));
@@ -102,7 +102,7 @@ List<String> _stringsFromTags(List<Bs4Element> tags) {
   return group;
 }
 
-Future<void> scrapeUpcomingEvents() async {
+Future<void> scrapeUpcomingEvents(UserData user) async {
   http.Response raw;
   String upcomingURL = base_url + '?' + upcomingEvents_action;
   List<String> eventLinks = [];
@@ -110,29 +110,29 @@ Future<void> scrapeUpcomingEvents() async {
 
   raw = await http.post(
     Uri.parse(upcomingURL),
-    body: mainUser.http.data,
-    headers: mainUser.http.headers,
+    body: user.http.data,
+    headers: user.http.headers,
   );
-  mainUser.http.upcomingEventsResponse = BeautifulSoup(raw.body);
+  user.http.upcomingEventsResponse = BeautifulSoup(raw.body);
 
   // finding all links and adding to List
-  mainUser.http.upcomingEventsResponse
+  user.http.upcomingEventsResponse
       .findAll('div', attrs: {'class': 'calendar-title'}).forEach((tag) {
     eventLinks.add(base_url + tag.a!['href']!);
   });
 
   // processing all links simultaneously
-  await Future.wait(Iterable.generate(eventLinks.length, (i) {
-    return addUpcomingEvent(eventLinks[i], eventQuantity++);
-  }));
+  user.setUpcomingEvents(
+      await Future.wait(Iterable.generate(eventLinks.length, (i) {
+    return addUpcomingEvent(user.http.getHTTPTags(), eventLinks[i], eventQuantity++);
+  })));
 
   // sort scraped events
-  mainUser.upcomingEvents.sort((a, b) => a.compareTo(b));
+  user.upcomingEvents.sort((a, b) => a.compareTo(b));
 
   print("events passed");
 }
 
-Future<void> addUpcomingEvent(String link, int quantity) async {
-  EventFull event = await handleEvent(link, quantity);
-  mainUser.upcomingEvents.add(event);
+Future<EventFull> addUpcomingEvent(Map httpTags, String link, int quantity) async {
+  return await handleEvent(httpTags, link, quantity);
 }

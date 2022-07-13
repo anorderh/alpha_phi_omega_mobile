@@ -6,29 +6,126 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 // SYSTEM //
 /////////////
 
-// system information
-String versionNumber = "1.0";
-DateTime lastUpdated = DateTime(2022, 6, 29);
+class System extends InheritedWidget {
+  final String version;
+  final DateTime lastUpdated;
+  final DateTime currentDate;
 
-CalendarData mainCalendar = CalendarData();
+  const System({
+    Key? key,
+    required this.version,
+    required this.lastUpdated,
+    required this.currentDate,
+    required Widget child,
+  }) : super(key: key, child: child);
 
-// objects for focusing system calendar
+  static System of(BuildContext context) {
+    final System? result = context.dependOnInheritedWidgetOfExactType<System>();
+    assert(result != null, 'No System found in context');
+    return result!;
+  }
+
+  @override
+  bool updateShouldNotify(System oldWidget) {
+    return version != oldWidget.version &&
+        lastUpdated != oldWidget.lastUpdated &&
+        currentDate != oldWidget.currentDate;
+  }
+}
+
+class MainApp extends InheritedWidget {
+  final CalendarData mainCalendar;
+  final Maintenance maintenance;
+
+  const MainApp({
+    required this.mainCalendar,
+    required this.maintenance,
+    Key? key,
+    required Widget child,
+  }) : super(key: key, child: child);
+
+  static of(BuildContext context) {
+    final MainApp? result =
+        context.dependOnInheritedWidgetOfExactType<MainApp>();
+    assert(result != null, 'No  found in context');
+    return result!;
+  }
+
+  @override
+  bool updateShouldNotify(MainApp oldWidget) {
+    return (maintenance != oldWidget.maintenance &&
+        mainCalendar != oldWidget.mainCalendar);
+  }
+}
+
+// object for focusing system calendar
+
 class CalendarData {
-  late EventController eventController;
-  DateTime currentDate = DateTime(2022, 4, 7, 11, 30);
-  late int? monthProcessed;
+  late DateTime activeDate;
   late DateTime focusedDate;
+
+  late EventController eventController;
+  int? monthProcessed;
   late List<List<EventFull>> allDayEvents;
 
-  CalendarData() {
+  CalendarData(DateTime current) {
+    activeDate = current;
     resetData();
   }
 
   void resetData() {
     eventController = EventController();
-    focusedDate = currentDate;
-    allDayEvents = List.generate(7, (index) {return [];});
+    focusedDate = activeDate;
+    allDayEvents = List.generate(7, (index) {
+      return [];
+    });
     monthProcessed = null;
+  }
+
+  void setFocusedDate(DateTime newFocus) {
+    focusedDate = newFocus;
+  }
+
+  void setController(EventController newController) {
+    eventController = newController;
+  }
+
+  void setMonthProcessed(int newMonth) {
+    monthProcessed = newMonth;
+  }
+
+  void setNewAllDayEvents(List<List<EventFull>> newAllDayEvents) {
+    allDayEvents = newAllDayEvents;
+  }
+}
+
+// values & functions to clean system periodically
+
+class Maintenance {
+  late int homeIndex;
+  Function? refreshHome;
+  BuildContext? poppableContext;
+
+  Maintenance() {
+    resetData();
+  }
+
+  void resetData() {
+    homeIndex = 0;
+    refreshHome = null;
+    poppableContext = null;
+  }
+
+  void setIndex(int newIndex) {
+    homeIndex = newIndex;
+  }
+
+  void setRefresh(Function? newRefresh) {
+    refreshHome = newRefresh;
+  }
+
+  void setBuildContext(BuildContext? newContext) {
+    poppableContext = newContext;
   }
 }
 
@@ -79,22 +176,24 @@ class CredInfo {
 }
 
 class EventFull extends Comparable<EventFull> {
-  String title, link, cred, loc, desc, creator;
+  String title, link, id, cred, loc, desc, creator;
   DateTime date;
   DateTime? start, end;
-  List<Participant> participants;
+  DateTime? lock, close;
 
   EventFull(
       {required this.title,
       required this.link,
+      required this.id,
       required this.date,
       this.start,
       this.end,
+      this.lock,
+      this.close,
       this.cred = 'n/a',
       this.loc = 'n/a',
       this.desc = 'n/a',
-      this.creator = 'n/a',
-      required this.participants});
+      this.creator = 'n/a'});
 
   @override
   int compareTo(EventFull other) {
@@ -125,9 +224,11 @@ class EventFull extends Comparable<EventFull> {
 
 class Participant {
   final String name;
-  String comment;
+  String? comment;
+  String? number;
+  int? canDrive;
 
-  Participant(this.name, [this.comment = 'n/a']);
+  Participant(this.name, [this.comment, this.number, this.canDrive]);
 }
 
 /////////////
@@ -144,3 +245,10 @@ CredInfo pullCredInfo(String name) {
   return CredInfo(Colors.grey.shade500, FontAwesomeIcons.folder);
 }
 
+void pushToNew(
+    {required BuildContext context,
+    required bool withNavBar,
+    required Widget page}) {
+  Navigator.of(context, rootNavigator: !withNavBar)
+      .push(MaterialPageRoute(builder: (context) => page));
+}

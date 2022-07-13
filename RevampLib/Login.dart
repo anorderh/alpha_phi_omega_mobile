@@ -4,6 +4,7 @@ import '../Homepage/HomePage.dart';
 import '../Frontend/bottom_nav.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'AppData.dart';
 import 'Base.dart';
 import 'Login_HTTP.dart';
 import 'UserData.dart';
@@ -21,11 +22,13 @@ class LoginBody extends StatefulWidget {
 class _LoginBodyState extends State<LoginBody> {
   final userController = TextEditingController();
   final pwController = TextEditingController();
+  late UserData user;
   bool isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    user = MainUser.of(context).data;
+    super.didChangeDependencies();
   }
 
   Future<void> submit() async {
@@ -33,19 +36,22 @@ class _LoginBodyState extends State<LoginBody> {
     setState(() {
       isLoading = true;
     });
-    await initHTTP(userController.text, pwController.text);
-    setState(() {
-      isLoading = false;
-    });
+
+    UserHTTP? result =
+        await initHTTP(user.http, userController.text, pwController.text);
+    if (result != null) {
+      user.http = result;
+      user.email = userController.text;
+    }
 
     // resetting text fields
     userController.clear();
     pwController.clear();
     FocusScope.of(context).unfocus();
-  }
 
-  void openBase() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => Base()));
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
@@ -210,17 +216,46 @@ class _LoginBodyState extends State<LoginBody> {
                                   onPressed: () async {
                                     await submit();
 
-                                    if (mainUser.http.validLogin) {
-                                      openBase();
+                                    if (user.http.validLogin) {
+
+                                      Navigator();
+                                      // unlock the app
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) => MainApp(
+                                                mainCalendar: CalendarData(
+                                                  System.of(context).currentDate
+                                                ),
+                                                maintenance: Maintenance(),
+                                                child: Base(),
+                                              )));
                                     } else {
+                                      // allow for login retry
                                       showDialog(
                                           barrierDismissible: true,
                                           context: context,
-                                          builder: (context) =>
-                                              const CupertinoAlertDialog(
-                                                title: Text("Invalid Login"),
+                                          builder: (context) => AlertDialog(
+                                                backgroundColor:
+                                                    Colors.lightBlue[50],
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                            Radius.circular(
+                                                                15.0))),
+                                                title: Text(
+                                                  "Invalid Login",
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
                                                 content: Text(
-                                                    "Incorrect email and/or password"),
+                                                  "Incorrect email and/or password",
+                                                  textAlign: TextAlign.center,
+                                                  style:
+                                                      TextStyle(fontSize: 14),
+                                                ),
                                               ));
                                     }
                                   },
