@@ -1,4 +1,5 @@
 import 'package:beautiful_soup_dart/beautiful_soup.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import '../Homepage/HomePage.dart';
 import '../Frontend/bottom_nav.dart';
@@ -7,7 +8,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'AppData.dart';
 import 'Base.dart';
 import 'Login_HTTP.dart';
+import 'URLHandler.dart';
 import 'UserData.dart';
+import 'package:sizer/sizer.dart';
 
 // 'anthony@norderhaug.org'
 // 'gqgRg6yuWTUmhmm'
@@ -24,6 +27,8 @@ class _LoginBodyState extends State<LoginBody> {
   final pwController = TextEditingController();
   late UserData user;
   bool isLoading = false;
+  bool timeout = false;
+  String chapter = "Alpha Delta";
 
   @override
   void didChangeDependencies() {
@@ -32,17 +37,19 @@ class _LoginBodyState extends State<LoginBody> {
   }
 
   Future<void> submit() async {
+    timeout = false;
     // attempting login
     setState(() {
       isLoading = true;
     });
 
-    UserHTTP? result =
-        await initHTTP(user.http, userController.text, pwController.text);
-    if (result != null) {
-      user.http = result;
-      user.email = userController.text;
-    }
+    // create http & attempt login (timeout after 15)
+    user.http = UserHTTP(chapter);
+    await initHTTP(user.http, userController.text, pwController.text)
+        .timeout(const Duration(seconds: 15), onTimeout: () {
+      timeout = true;
+    });
+    user.email = userController.text;
 
     // resetting text fields
     userController.clear();
@@ -52,6 +59,30 @@ class _LoginBodyState extends State<LoginBody> {
     setState(() {
       isLoading = false;
     });
+  }
+
+  String getGreekLetters(String chapter) {
+    List<String> greeklish = chapter.split(" ");
+
+    return Iterable.generate(greeklish.length, (i) {
+      return greekAlphabet[greeklish[i]]!;
+    }).toList().join();
+  }
+
+  List<DropdownMenuItem<String>> setDropdown(List<String> chapters) {
+    List<DropdownMenuItem<String>> items = [];
+
+    for (String chapter in chapters) {
+      items.add(DropdownMenuItem<String>(
+        value: chapter,
+        child: Text(
+          getGreekLetters(chapter),
+          style: const TextStyle(fontSize: 24),
+        ),
+      ));
+    }
+
+    return items;
   }
 
   @override
@@ -64,7 +95,7 @@ class _LoginBodyState extends State<LoginBody> {
                 physics: ClampingScrollPhysics(),
                 child: Container(
                   // ENTIRE SCREEN
-                  height: MediaQuery.of(context).size.height,
+                  height: 100.h,
                   child: Column(
                     // CONTENTS
                     children: [
@@ -75,17 +106,34 @@ class _LoginBodyState extends State<LoginBody> {
                           children: [
                             Positioned(
                               // CHAPTER BUBBLE
-                              right: 75,
-                              bottom: 60,
+                              right: 60,
+                              bottom: 50,
                               child: Container(
-                                child: const Center(
-                                  child: Text(
-                                    "ΑΔ",
-                                    style: TextStyle(fontSize: 36),
+                                padding: EdgeInsets.only(left: 5, right: 0),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: DropdownButton2(
+                                    buttonWidth: 65,
+                                    iconSize: 20,
+                                    offset: Offset(-10, 55),
+                                    dropdownOverButton: true,
+                                    // offset: Offset(-10, 7),
+                                    scrollbarAlwaysShow: true,
+                                    dropdownWidth: 85,
+                                    alignment: Alignment.center,
+                                    value: chapter,
+                                    dropdownMaxHeight: 150,
+                                    onChanged: (String? newChapter) {
+                                      setState(() {
+                                        chapter = newChapter!;
+                                      });
+                                    },
+                                    items: setDropdown(
+                                        chapterLibrary.keys.toList()),
                                   ),
                                 ),
-                                width: 80,
-                                height: 80,
+                                width: 100,
+                                height: 100,
                                 decoration: BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
@@ -134,7 +182,7 @@ class _LoginBodyState extends State<LoginBody> {
                                 style: TextStyle(
                                     fontSize: 36, fontWeight: FontWeight.bold),
                               ),
-                              Text("In Leadership, Friendship, and Service",
+                              Text('In Leadership, Friendship, and Service',
                                   style: TextStyle(
                                       fontSize: 16, color: Colors.grey)),
                               Padding(
@@ -184,18 +232,23 @@ class _LoginBodyState extends State<LoginBody> {
                                 // LOGIN BUTTON
                                 decoration: BoxDecoration(boxShadow: [
                                   BoxShadow(
-                                    color: Colors.lightBlue.withOpacity(0.5),
+                                    color: isLoading
+                                        ? Colors.grey.shade300.withOpacity(0.5)
+                                        : Colors.lightBlue.withOpacity(0.5),
                                     spreadRadius: -25,
                                     blurRadius: 10,
                                   )
                                 ]),
                                 padding: EdgeInsets.all(25),
                                 child: CupertinoButton(
+                                  disabledColor: Colors.grey.shade300,
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(15)),
-                                  color: Colors.lightBlue,
+                                  color: isLoading
+                                      ? Colors.grey.shade200
+                                      : Colors.lightBlue,
                                   child: Container(
-                                    width: MediaQuery.of(context).size.width,
+                                    width: 100.w,
                                     height: 25,
                                     child: Center(
                                       child: isLoading
@@ -213,68 +266,81 @@ class _LoginBodyState extends State<LoginBody> {
                                                   fontSize: 18)),
                                     ),
                                   ),
-                                  onPressed: () async {
-                                    await submit();
+                                  onPressed: isLoading
+                                      ? null
+                                      : () async {
+                                          await submit();
 
-                                    if (user.http.validLogin) {
-
-                                      Navigator();
-                                      // unlock the app
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) => MainApp(
-                                                mainCalendar: CalendarData(
-                                                  System.of(context).currentDate
-                                                ),
-                                                maintenance: Maintenance(),
-                                                child: Base(),
-                                              )));
-                                    } else {
-                                      // allow for login retry
-                                      showDialog(
-                                          barrierDismissible: true,
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                                backgroundColor:
-                                                    Colors.lightBlue[50],
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                            Radius.circular(
-                                                                15.0))),
-                                                title: Text(
-                                                  "Invalid Login",
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                content: Text(
-                                                  "Incorrect email and/or password",
-                                                  textAlign: TextAlign.center,
-                                                  style:
-                                                      TextStyle(fontSize: 14),
-                                                ),
-                                              ));
-                                    }
-                                  },
+                                          if (user.http.validConnection) {
+                                            // unlock the app
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder:
+                                                        (context) => MainApp(
+                                                              mainCalendar:
+                                                                  CalendarData(
+                                                                      System.of(
+                                                                              context)
+                                                                          .currentDate),
+                                                              maintenance:
+                                                                  Maintenance(),
+                                                              child: Base(
+                                                                user: user,
+                                                              ),
+                                                            )));
+                                          } else {
+                                            // allow for login retry
+                                            showDialog(
+                                                barrierDismissible: true,
+                                                context: context,
+                                                builder: (context) =>
+                                                    AlertDialog(
+                                                      backgroundColor:
+                                                          Colors.lightBlue[50],
+                                                      shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                                  Radius.circular(
+                                                                      15.0))),
+                                                      title: Text(
+                                                        "Invalid Login",
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold),
+                                                      ),
+                                                      content: Text(
+                                                        timeout
+                                                            ? "Network timeout occurred"
+                                                            : "Incorrect email and/or password",
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: TextStyle(
+                                                            fontSize: 14),
+                                                      ),
+                                                    ));
+                                          }
+                                        },
                                 ),
                               ),
                               Container(
                                 // LOGIN HELP
                                 padding: EdgeInsets.all(15),
-                                width: MediaQuery.of(context).size.width,
+                                width: 100.w,
                                 child: Center(
                                   child: Column(
                                     children: [
                                       Text(
                                           "If you are unable to login, refer to"),
-                                      Text(
-                                        "www.apoonline.org",
+                                      LinkableText(
+                                        text: "https://www.apoonline.org/",
                                         style: TextStyle(
                                             fontSize: 18,
                                             color: Colors.lightBlue),
+                                        align: TextAlign.center,
                                       )
                                     ],
                                   ),

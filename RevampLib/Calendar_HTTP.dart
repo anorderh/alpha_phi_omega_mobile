@@ -3,32 +3,48 @@ import 'package:beautiful_soup_dart/beautiful_soup.dart';
 import 'package:example/RevampLib/AppData.dart';
 import 'package:example/RevampLib/UserData.dart';
 import 'package:calendar_view/calendar_view.dart';
+import 'Login_HTTP.dart';
 import 'package:intl/intl.dart';
 import 'CalendarHelpers.dart';
 
-Future<bool> startEventScrapping(UserData user, CalendarData calendar,
+Future<String> startEventScrapping(UserData user, CalendarData calendar,
     DateTime date, bool forceRefresh) async {
   calendar.setFocusedDate(date);
   int eventCount = 0;
 
-  // check if calendar present
-  if (calendar.monthProcessed == null ||
-      (forceRefresh || calendar.monthProcessed != date.month)) {
-    user.http.setCalendarResponse(await setCalendar(user.http.getHTTPTags(), date));
-    calendar.setMonthProcessed(date.month);
+  try {
+    // check if calendar present
+    if (calendar.monthProcessed == null ||
+        (forceRefresh || calendar.monthProcessed != date.month)) {
+      user.http.calendarResponse =
+      await setCalendar(user.http.getHTTPTags(), user.http.baseURL, date);
+    }
+
+    // check valid http
+    if (verifyHTTP(user.http.calendarResponse)) {
+      calendar.setMonthProcessed(date.month);
+    } else {
+      return "http error";
+    }
+
+    // retrieve and pull data from day's events
+    // ! BLOCK if current queue is different from FocusedDate
+    if (date == calendar.focusedDate) {
+      eventCount = await pullEventsFrom(user, calendar, date.day);
+    }
+  } catch (e) {
+    return "parse error";
   }
 
-  // retrieve and pull data from day's events
-  eventCount = await pullEventsFrom(user, calendar, date.day);
-
   // return bool stating if eventList empty
-  return eventCount != 0;
+  return eventCount != 0 ? "success" : "empty";
 }
 
-Future<BeautifulSoup> setCalendar(Map httpTags, DateTime date) async {
+Future<BeautifulSoup> setCalendar(
+    Map httpTags, String baseURL, DateTime date) async {
   http.Response raw;
 
-  String calendarUrl = base_url +
+  String calendarUrl = baseURL +
       '?month=${date.month}' +
       '&year=${date.year}' +
       '&action=vieweventcalendar';
@@ -42,7 +58,8 @@ Future<BeautifulSoup> setCalendar(Map httpTags, DateTime date) async {
   return BeautifulSoup(raw.body);
 }
 
-Future<int> pullEventsFrom(UserData user, CalendarData calendar, int day) async {
+Future<int> pullEventsFrom(
+    UserData user, CalendarData calendar, int day) async {
   List<Bs4Element> eventBlocks;
   List<EventFull> results = [];
   int eventQuantity = 0;
@@ -54,11 +71,13 @@ Future<int> pullEventsFrom(UserData user, CalendarData calendar, int day) async 
 
       // generating futures from all Event Blocks and processing concurrently
       results = await Future.wait(Iterable.generate(eventBlocks.length, (i) {
-        return handleEvent(user.http.getHTTPTags(), eventBlocks[i].a!['href']!, ++eventQuantity);
+        return handleEvent(user.http.getHTTPTags(), user.http.baseURL,
+            eventBlocks[i].a!['href']!, ++eventQuantity);
       }));
 
       // add to controller
       for (EventFull event in results) {
+        // ! BLOCK if current queue is different from FocusedDate
         if (event.start != null) {
           calendar.eventController.add(CalendarEventData<EventFull>(
               title: event.title,
@@ -67,8 +86,12 @@ Future<int> pullEventsFrom(UserData user, CalendarData calendar, int day) async 
               endTime: event.end,
               date: event.date));
         } else {
-          calendar.allDayEvents[calendar.focusedDate.weekday - 1]
-              .add(event);
+          var day =
+              calendar.allDayEvents['${event.date.month}.${event.date.day}'];
+          if (day != null && !isEventAlreadyPresent(day, event.link)) {
+            calendar.allDayEvents['${event.date.month}.${event.date.day}']
+                ?.add(event);
+          }
         }
       }
 
@@ -79,7 +102,8 @@ Future<int> pullEventsFrom(UserData user, CalendarData calendar, int day) async 
   return eventQuantity;
 }
 
-Future<EventFull> handleEvent(Map httpTags, String link, int eventNumber) async {
+Future<EventFull> handleEvent(
+    Map httpTags, String baseURL, String link, int eventNumber) async {
   print("handled event #" + eventNumber.toString());
   List<DateTime> eventTimes; // [{date}, start, end]
   DateTime tempDate;
@@ -109,7 +133,7 @@ Future<EventFull> handleEvent(Map httpTags, String link, int eventNumber) async 
           .text,
       link: link,
       date: eventTimes[0],
-      id: link.replaceAll(base_url + '?action=eventsignup&eventid=', ''));
+      id: link.replaceAll(baseURL + '?action=eventsignup&eventid=', ''));
 
   // implementing start & end times, if applicable
   if (eventTimes.length > 1 && eventTimes[1] != eventTimes[2]) {
@@ -124,11 +148,13 @@ Future<EventFull> handleEvent(Map httpTags, String link, int eventNumber) async 
 
   try {
     // credit
-    event.cred = header
-        .find('ul',
-            attrs: {'style': 'list-style: none; margin: 0; padding: 0;'})!
-        .find('li')!
-        .text;
+    List<Bs4Element> tags = header.find('ul', attrs: {
+      'style': 'list-style: none; margin: 0; padding: 0;'
+    })!.findAll('li');
+
+    event.cred = Iterable.generate(tags.length, (i) {
+      return tags[i].text;
+    }).toList().join("\n");
   } catch (e) {}
   ;
 

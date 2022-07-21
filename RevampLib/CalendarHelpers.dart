@@ -72,3 +72,22 @@ String deriveGreeting(DateTime date) {
     return "Good Morning,";
   }
 }
+
+Map<String, List<EventFull>> getAllDayMap(List<DateTime> dates) {
+  Map<String, List<EventFull>> allDayEvents = {};
+
+  for (DateTime date in dates) {
+    allDayEvents['${date.month}.${date.day}'] = [];
+  }
+  return allDayEvents;
+}
+
+bool isEventAlreadyPresent(List<EventFull> list, String link) {
+  for (EventFull entry in list) {
+    if (entry.link == link) {
+      return true;
+    }
+  }
+
+  return false;
+}

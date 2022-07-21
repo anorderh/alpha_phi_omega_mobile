@@ -8,12 +8,14 @@ import 'package:calendar_view/calendar_view.dart';
 import 'package:flutter/services.dart';
 import 'package:example/RevampLib/UserData.dart';
 import 'package:example/RevampLib/AppData.dart';
+import 'package:sizer/sizer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.bottom]);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+      overlays: [SystemUiOverlay.bottom]);
 
   runApp(const MyApp());
 }
@@ -25,21 +27,24 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CalendarControllerProvider(
-        controller: EventController(),
-        child: System(
-          version: "1.0",
-          lastUpdated: DateTime(2022, 7, 13),
-          currentDate: DateTime(2022, 7, 19),
-          child: MainUser(
-            data: UserData(),
-            child: MaterialApp(
+      controller: EventController(),
+      child: System(
+        version: "1.0",
+        lastUpdated: DateTime(2022, 7, 13),
+        currentDate: DateTime(2022, 7, 19),
+        child: MainUser(
+          data: UserData(),
+          child: Sizer(builder: (context, orientation, deviceType) {
+            return MaterialApp(
               title: 'Flutter Demo',
               theme: ThemeData(
                   primarySwatch: Colors.blue,
                   textTheme: GoogleFonts.dmSerifDisplayTextTheme()),
               home: LoginBody(),
-            ),
-          ),
-        ));
+            );
+          }),
+        ),
+      ),
+    );
   }
 }

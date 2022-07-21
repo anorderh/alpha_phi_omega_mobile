@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -6,9 +7,13 @@ import '../RevampLib/AppData.dart';
 import '../RevampLib/EventView_HTTP.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'ErrorHandler.dart';
+import 'URLHandler.dart';
 import '../RevampLib/Settings.dart';
 import 'Base.dart';
+import 'package:sizer/sizer.dart';
 import 'UserData.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:expandable_page_view/expandable_page_view.dart';
 
 class EventView extends StatefulWidget {
@@ -29,11 +34,18 @@ class _EventViewState extends State<EventView> {
 
   @override
   void didChangeDependencies() {
+    print("changed participants");
     httpTags = MainUser.of(context).data.http.getHTTPTags();
     participantScrape = getParticipants(httpTags, widget.event.link);
     MainApp.of(context).maintenance.setBuildContext(context);
 
     super.didChangeDependencies();
+  }
+
+  void refreshParticipants() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {
+          participantScrape = getParticipants(httpTags, widget.event.link);
+        }));
   }
 
   void updateParticipants() {
@@ -50,6 +62,8 @@ class _EventViewState extends State<EventView> {
 
   @override
   Widget build(BuildContext context) {
+    print("rebuilt scaffold");
+
     return Scaffold(
         backgroundColor:
             HSLColor.fromColor(widget.info.color).withLightness(0.9).toColor(),
@@ -95,7 +109,9 @@ class _EventViewState extends State<EventView> {
                           child: IconButton(
                               padding: EdgeInsets.only(left: 10, top: 15),
                               onPressed: () {
-                                MainApp.of(context).maintenance.setBuildContext(null);
+                                MainApp.of(context)
+                                    .maintenance
+                                    .setBuildContext(null);
                                 Navigator.of(context).pop();
                               },
                               icon: const Icon(FontAwesomeIcons.rotateLeft,
@@ -106,7 +122,7 @@ class _EventViewState extends State<EventView> {
                   ),
                 ),
                 Container(
-                  width: MediaQuery.of(context).size.width,
+                  width: 100.w,
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
                       color: Colors.white,
@@ -134,7 +150,9 @@ class _EventViewState extends State<EventView> {
                       ),
                       EventInfo(
                           bubbleColor: widget.info.color, event: widget.event),
-                      ParticipantList(scrape: participantScrape)
+                      ParticipantList(
+                          scrape: participantScrape,
+                          refresh: refreshParticipants)
                     ],
                   ),
                 )
@@ -169,9 +187,11 @@ class Description extends StatelessWidget {
               child: Scrollbar(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(top: 5, bottom: 5, right: 5),
-                  child: Text(desc,
-                      textAlign: TextAlign.left,
-                      style: TextStyle(fontSize: 14)),
+                  child: LinkableText(
+                    text: desc,
+                    align: TextAlign.left,
+                    style: TextStyle(fontSize: 14),
+                  ),
                 ),
               ),
             )
@@ -224,17 +244,8 @@ class _EventButtonsState extends State<EventButtons> {
             update: widget.update,
             size: 45,
           ),
-          ChairButton(
-            scrape: widget.scrape,
-            size: 45,
-          ),
-          EventButton(
-            label: Image.asset('assets/googleCalendarIcon.png',
-                height: 35, width: 35),
-            callback: () {
-              print("tapped calendar");
-            },
-            color: Colors.white,
+          CalendarButton(
+            event: widget.event,
             size: 45,
           )
         ],
@@ -304,10 +315,10 @@ class SignupButton extends StatefulWidget {
 }
 
 class _SignupButtonState extends State<SignupButton> {
-  EventButton getButton(bool signedUp) {
+  EventButton getButton(int shiftID, int shifts) {
     if (widget.event.close != null &&
         widget.event.close!.compareTo(DateTime.now()) > 0) {
-      if (signedUp) {
+      if (shiftID != -1) {
         if (widget.event.lock != null &&
             widget.event.lock!.compareTo(DateTime.now()) > 0) {
           return EventButton(
@@ -323,7 +334,9 @@ class _SignupButtonState extends State<SignupButton> {
                         actionName: "Leave",
                         result: removeSelf(
                             MainUser.of(context).data.http.getHTTPTags(),
-                            widget.event.id),
+                            MainUser.of(context).data.http.baseURL,
+                            widget.event.id,
+                            shiftID),
                       ));
             },
             size: widget.size,
@@ -344,8 +357,8 @@ class _SignupButtonState extends State<SignupButton> {
             showDialog(
                 barrierDismissible: false,
                 context: context,
-                builder: (context) =>
-                    JoinDialog(update: widget.update, event: widget.event));
+                builder: (context) => JoinDialog(
+                    update: widget.update, event: widget.event, count: shifts));
           },
           color: Colors.blue,
           size: widget.size,
@@ -375,104 +388,92 @@ class _SignupButtonState extends State<SignupButton> {
                 child: CircularProgressIndicator(
                     strokeWidth: 2.5, color: Colors.white),
               ),
-              callback: () {},
+              callback: null,
               color: Colors.blue,
               size: widget.size,
             );
           } else {
-            if (snapshot.hasError) {
-              print(snapshot.error.toString());
-              print(snapshot.stackTrace.toString());
-
-              return Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.all(15),
-                child: Text(
-                    "An error occurred. Please refresh or close the app.",
-                    style: GoogleFonts.dmSerifDisplay(fontSize: 16)),
-              );
-            } else if (snapshot.hasData) {
-              return getButton(snapshot.data![0]);
+            if (snapshot.hasData) {
+              if (snapshot.data!.length != 1) {
+                return getButton(
+                    snapshot.data![0], snapshot.data![1].keys.length);
+              }
             }
           }
-          return Container(
-            alignment: Alignment.center,
-            padding: EdgeInsets.all(5),
-            child: Text('State: ${snapshot.connectionState}'),
+          return EventButton(
+            label: Icon(FontAwesomeIcons.triangleExclamation, color: Colors.deepOrangeAccent),
+            callback: null,
+            color: Colors.orange,
+            size: widget.size,
           );
         });
   }
 }
 
-class ChairButton extends StatefulWidget {
-  final Future<List<dynamic>> scrape;
+class CalendarButton extends StatelessWidget {
   final double size;
+  final EventFull event;
 
-  const ChairButton({Key? key, required this.scrape, required this.size})
+  const CalendarButton({Key? key, required this.size, required this.event})
       : super(key: key);
 
-  @override
-  _ChairButtonState createState() => _ChairButtonState();
-}
+  String retrieveURL() {
+    String url = 'https://calendar.google.com/calendar/u/0/r/eventedit?' +
+        'text=${event.title.replaceAll(" ", "+")}';
 
-class _ChairButtonState extends State<ChairButton> {
+    String dateText;
+    if (event.start == null) {
+      // all day event
+      url += '&dates=${formatDateForCalendar(event.date)}' +
+          '/${formatDateForCalendar(event.date.add(Duration(days: 1)))}';
+    } else {
+      // start & end date
+      url += '&dates=${formatDateForCalendar(event.start!)}' +
+          '/${formatDateForCalendar(event.end!)}';
+    }
+
+    url += '&details=${encodeText(event.desc)}';
+    url += '&location=${encodeText(event.loc)}';
+
+    return url;
+  }
+
+  String formatDateForCalendar(DateTime date) {
+    String text = date.toUtc().toString();
+    text = text.substring(0, text.length - 5) + 'Z';
+
+    return text.replaceAll('-', '').replaceAll(':', '').replaceAll(' ', 'T');
+  }
+
+  String encodeText(String input) {
+    return input
+        .replaceAll('\n', '%0D%0A')
+        .replaceAll('"', '%26quot;')
+        .replaceAll(' ', '+');
+  }
+
+  String decodeText(String input) {
+    return input
+        .replaceAll('%0D%0A', '\n')
+        .replaceAll('%26quot;', '"')
+        .replaceAll('+', ' ');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-        future: widget.scrape,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.active ||
-              snapshot.connectionState == ConnectionState.waiting) {
-            return EventButton(
-              label: SizedBox.square(
-                dimension: 25,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2.5, color: Colors.white),
-              ),
-              callback: () {},
-              color: Colors.blue,
-              size: widget.size,
-            );
-          } else {
-            if (snapshot.hasError) {
-              print(snapshot.error.toString());
-              print(snapshot.stackTrace.toString());
+    return EventButton(
+      label:
+          Image.asset('assets/googleCalendarIcon.png', height: 35, width: 35),
+      callback: () async {
+        String url = retrieveURL();
 
-              return Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.all(15),
-                child: Text(
-                    "An error occurred. Please refresh or close the app.",
-                    style: GoogleFonts.dmSerifDisplay(fontSize: 16)),
-              );
-            } else if (snapshot.hasData) {
-              if (snapshot.data![1].length > 0) {
-                return EventButton(
-                  label: Text("Chair",
-                      style: TextStyle(color: Colors.white, fontSize: 22)),
-                  callback: () {
-                    print("tapped chair");
-                  },
-                  color: Color(0xffd0a80b),
-                  size: widget.size,
-                );
-              } else {
-                return EventButton(
-                  label: Text("N/A",
-                      style: TextStyle(color: Colors.white, fontSize: 22)),
-                  callback: null,
-                  color: Colors.grey,
-                  size: widget.size,
-                );
-              }
-            }
-          }
-          return Container(
-            alignment: Alignment.center,
-            padding: EdgeInsets.all(5),
-            child: Text('State: ${snapshot.connectionState}'),
-          );
-        });
+        if (!await launchUrl(Uri.parse(url))) {
+          throw 'Could not launch $url';
+        }
+      },
+      color: Colors.white,
+      size: 45,
+    );
   }
 }
 
@@ -637,8 +638,10 @@ class InfoPanel extends StatelessWidget {
 
 class ParticipantList extends StatefulWidget {
   final Future<List<dynamic>> scrape;
+  final Function refresh;
 
-  const ParticipantList({Key? key, required this.scrape}) : super(key: key);
+  const ParticipantList({Key? key, required this.scrape, required this.refresh})
+      : super(key: key);
 
   @override
   _ParticipantListState createState() => _ParticipantListState();
@@ -674,100 +677,216 @@ class _ParticipantListState extends State<ParticipantList> {
     }
   }
 
-  List<Widget> retrieveTiles(List<Participant> participants) {
-    List<Widget> tiles = [];
-    Row tileContent;
+  bool listsAreEmpty(List<dynamic> lists) {
+    for (List<dynamic> list in lists) {
+      if (list.isNotEmpty) {
+        return false;
+      }
+    }
+    return true;
+  }
 
-    if (participants.isEmpty) {
+  Widget retrieveShift(
+      String title, Map<String, List<Participant>> participants) {
+    List<String> titleParts = title.split(" ");
+
+    return Container(
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(15)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 3)
+          ]),
+      margin: EdgeInsets.only(top: 10, bottom: 10),
+      child: Column(
+        children: <Widget>[
+          Container(
+            decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(15),
+                    topLeft: Radius.circular(15))),
+            width: 100.w,
+            padding: EdgeInsets.all(10),
+            child: Container(
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(titleParts.sublist(0, 2).join(" "),
+                      style: TextStyle(color: Colors.white, fontSize: 20)),
+                  Text(titleParts.sublist(2).join(" "),
+                      style: TextStyle(color: Colors.white, fontSize: 20))
+                ],
+              ),
+            ),
+          ),
+          Column(
+            children: retrieveTiles(participants),
+          )
+        ],
+      ),
+    );
+  }
+
+  List<Widget> retrieveTiles(Map<String, List<Participant>> participants) {
+    List<Widget> tiles = [];
+
+    if (listsAreEmpty(participants.values.toList())) {
+      // no participants msg
       tiles.add(Container(
+          padding: EdgeInsets.all(15),
           alignment: Alignment.center,
-          height: 50,
-          padding: EdgeInsets.only(left: 10, right: 10),
-          color: tileColor,
           child: Text(
             "No participants!",
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 fontStyle: FontStyle.italic),
-          )));
+          ),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.only(
+                  bottomRight: Radius.circular(15),
+                  bottomLeft: Radius.circular(15)),
+              color: Colors.blue.shade50)));
     } else {
-      for (int i = 0; i < participants.length; i++) {
-        tileColor = (i % 2 == 0) ? Colors.blue.shade50 : Colors.white;
+      List<Participant> active = participants['active']!;
+      List<Participant>? waitlist = participants['waitlist'];
 
-        if (i % 2 == 0) {
-          tileColor = Colors.blue.shade50;
-        } else {
-          tileColor = Colors.white;
+      if (waitlist == null) {
+        // if waitlist null, no waitList block needed
+        for (int i = 0; i < active.length; i++) {
+          tileColor = (i % 2 == 0) ? Colors.blue.shade50 : Colors.white;
+
+          // round last entry
+          if (i == active.length - 1) {
+            tiles.add(ParticipantTile(
+                contents: retrieveTileContent(active[i]),
+                rounded: true,
+                color: tileColor));
+          } else {
+            tiles.add(ParticipantTile(
+                contents: retrieveTileContent(active[i]),
+                rounded: false,
+                color: tileColor));
+          }
+        }
+      } else {
+        // if waitlist not null, no active entries are rounded
+        for (int i = 0; i < active.length; i++) {
+          tiles.add(ParticipantTile(
+              contents: retrieveTileContent(active[i]),
+              rounded: false,
+              color: tileColor));
         }
 
-        tileContent = Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-                // color: Colors.red,
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(participants[i].name,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.left,
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(participants[i].number!,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.left,
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54))
-                      ],
-                    ),
-                    retrieveCarIcon(participants[i])
-                  ],
-                )),
-            Flexible(
-              child: Container(
-                width: 135,
-                alignment: Alignment.centerRight,
-                child: participants[i].comment != null
-                    ? Text(participants[i].comment!,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold))
-                    : Container(),
-              ),
-            )
-          ],
-        );
+        // add waitlist block
+        tiles.add(ParticipantTile(
+            contents: getWaitlistContent(),
+            rounded: waitlist.length == 0,
+            color: Colors.grey.shade300));
 
-        if (i == participants.length - 1) {
-          tiles.add(Container(
-              height: 50,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                      bottomRight: Radius.circular(15),
-                      bottomLeft: Radius.circular(15)),
-                  color: tileColor),
-              padding: EdgeInsets.only(left: 10, right: 10),
-              child: tileContent));
-        } else {
-          tiles.add(Container(
-              height: 50,
-              padding: EdgeInsets.only(left: 10, right: 10),
-              color: tileColor,
-              child: tileContent));
+        // round last entry
+        for (int i = 0; i < waitlist.length; i++) {
+          tileColor = (i % 2 == 0) ? Colors.blue.shade50 : Colors.white;
+          bool isRounded = (i == waitlist.length - 1);
+
+          tiles.add(ParticipantTile(
+              contents: retrieveTileContent(waitlist[i]),
+              rounded: isRounded,
+              color: tileColor));
         }
       }
     }
 
     return tiles;
+  }
+
+  Widget retrieveTileContent(Participant person) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Container(
+            // color: Colors.red,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(person.name,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(person.number!,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black54))
+                  ],
+                ),
+                retrieveCarIcon(person)
+              ],
+            )),
+        Flexible(
+          child: Container(
+            width: 135,
+            alignment: Alignment.centerRight,
+            child: person.comment != null
+                ? Text(person.comment!,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))
+                : Container(),
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget getWaitlistContent() {
+    return Row(
+      children: [
+        Text("Waitlist",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Container(
+            padding: EdgeInsets.only(left: 15, right: 5),
+            child: Icon(FontAwesomeIcons.triangleExclamation,
+                color: Colors.deepOrangeAccent)),
+        Flexible(
+          child: Container(
+              padding: EdgeInsets.only(left: 5, right: 5),
+              child: Text(
+                  "This event is full!\nSign up to be added to the waitlist.",
+                  textAlign: TextAlign.left,
+                  maxLines: 2,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black54))),
+        )
+      ],
+    );
+  }
+
+  void _promptDialog(String error) {
+    if (error == 'http error') {
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) =>
+              HTTPRefreshDialog(refreshScrape: widget.refresh()));
+    } else {
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) => ErrorDialog(title: error));
+    }
   }
 
   @override
@@ -786,56 +905,70 @@ class _ParticipantListState extends State<ParticipantList> {
                 ),
               ),
             );
-          } else {
-            if (snapshot.hasError) {
-              print(snapshot.error.toString());
-              print(snapshot.stackTrace.toString());
+          } else if (snapshot.hasData) {
+            if (snapshot.data!.length == 1) {
+              if (snapshot.data![0] == "http error") {
+                Future.delayed(
+                    Duration.zero, () => _promptDialog("http error"));
+              } else if (snapshot.data![0] == "parse error") {
+                Future.delayed(
+                    Duration.zero, () => _promptDialog("parse error"));
+              }
+            } else {
+              List<Widget> shifts = [];
+              List<String> keys = snapshot.data![1].keys.toList();
 
-              return Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.all(15),
-                child: Text(
-                    "An error occurred. Please refresh or close the app.",
-                    style: GoogleFonts.dmSerifDisplay(fontSize: 16)),
-              );
-            } else if (snapshot.hasData) {
-              return Column(
-                children: <Widget>[
-                  Container(
-                    decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(15),
-                            topLeft: Radius.circular(15))),
-                    width: MediaQuery.of(context).size.width,
-                    padding: EdgeInsets.all(10),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: Text("Participants",
-                          style: TextStyle(color: Colors.white, fontSize: 20)),
-                    ),
-                  ),
-                  Column(
-                    children: retrieveTiles(snapshot.data![1].values.toList()),
-                  )
-                ],
-              );
+              for (int i = 0; i < keys.length; i++) {
+                String key = keys[i];
+                shifts.add(retrieveShift(key, snapshot.data![1][key]));
+              }
+
+              return Column(children: shifts);
             }
           }
-          return Container(
-            alignment: Alignment.center,
-            padding: EdgeInsets.all(5),
-            child: Text('State: ${snapshot.connectionState}'),
-          );
+          return Container();
         });
+  }
+}
+
+class ParticipantTile extends StatelessWidget {
+  final Widget contents;
+  final Color color;
+  final bool rounded;
+
+  ParticipantTile(
+      {Key? key,
+      required this.contents,
+      required this.rounded,
+      required this.color})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        height: 50,
+        decoration: rounded
+            ? BoxDecoration(
+                borderRadius: BorderRadius.only(
+                    bottomRight: Radius.circular(15),
+                    bottomLeft: Radius.circular(15)),
+                color: color)
+            : BoxDecoration(color: color),
+        padding: EdgeInsets.only(left: 10, right: 10),
+        child: contents);
   }
 }
 
 class JoinDialog extends StatefulWidget {
   final Function update;
   final EventFull event;
+  final int count;
 
-  const JoinDialog({Key? key, required this.update, required this.event})
+  const JoinDialog(
+      {Key? key,
+      required this.update,
+      required this.event,
+      required this.count})
       : super(key: key);
 
   @override
@@ -844,147 +977,225 @@ class JoinDialog extends StatefulWidget {
 
 class _JoinDialogState extends State<JoinDialog> {
   TextEditingController controller = TextEditingController();
+  late CupertinoTextField commentField;
   bool isDriving = false;
   Widget visibleSlider = Container();
   double canDrive = 0;
+  int curShift = 0;
+
+  @override
+  void initState() {
+    commentField = getCommentField();
+    super.initState();
+  }
+
+  CupertinoTextField getCommentField() {
+    return CupertinoTextField(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      style: GoogleFonts.dmSerifDisplay(fontSize: 16),
+      maxLines: 2,
+      maxLength: 41,
+      controller: controller,
+      decoration: BoxDecoration(
+          color: Colors.blue.shade100.withOpacity(0.5),
+          border: Border.all(width: 1, color: Colors.black)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      scrollable: true,
-      contentPadding: EdgeInsets.only(left: 24, right: 24, top: 12, bottom: 12),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(15.0))),
-      title: Text(
-        "Optional",
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-      content: Container(
-        width: 250,
-        child: Column(
-          children: [
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text(
-                "Are you driving?",
-                style: TextStyle(fontSize: 14),
-              ),
-              Container(
-                child: Checkbox(
-                    checkColor: Colors.white,
-                    fillColor: MaterialStateProperty.all(Colors.blue),
-                    value: isDriving,
-                    onChanged: (newValue) {
-                      setState(() {
-                        isDriving = newValue!;
-                      });
-                    }),
-              )
-            ]),
-            isDriving
-                ? Column(
-                    children: [
-                      Text(
-                        "How many besides yourself can you drive?",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        canDrive.toInt().toString(),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 24),
-                      ),
-                      SizedBox(
-                          width: 300,
-                          child: CupertinoSlider(
-                            thumbColor: Colors.blue,
-                            min: 0,
-                            max: 8,
-                            value: canDrive,
-                            onChanged: (newRating) {
-                              setState(() {
-                                canDrive = newRating;
-                              });
-                            },
-                          ))
-                    ],
-                  )
-                : Container(),
-            Text(
-              "Leave a comment?",
-              style: TextStyle(fontSize: 14),
-            ),
-            Container(
-                height: 100,
-                margin: EdgeInsets.all(5),
-                child: CupertinoTextField(
-                  onTap: () {
-                    FocusScope.of(context).unfocus();
-                  },
-                  style: GoogleFonts.dmSerifDisplay(fontSize: 16),
-                  maxLines: 2,
-                  maxLength: 41,
-                  controller: controller,
-                  decoration: BoxDecoration(
-                      color: Colors.blue.shade100.withOpacity(0.5),
-                      border: Border.all(width: 1, color: Colors.black)),
-                ))
-          ],
-        ),
-      ),
-      actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              flex: 1,
-              child: Container(
-                padding: EdgeInsets.only(right: 4),
-                child: EventButton(
-                  label: Icon(
-                    FontAwesomeIcons.circleXmark,
-                    color: Colors.red.shade900,
-                    size: 30,
+    return GestureDetector(
+      onTap: () {
+        if (commentField.selectionEnabled) {
+          FocusScope.of(context).unfocus();
+        }
+      },
+      child: Container(
+        color: Colors.transparent,
+        width: 100.w,
+        height: 100.h,
+        child: AlertDialog(
+          scrollable: true,
+          contentPadding:
+              EdgeInsets.only(left: 24, right: 24, top: 12, bottom: 12),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(15.0))),
+          title: Text(
+            "Optional",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          content: Container(
+            width: 250,
+            child: Column(
+              children: [
+                widget.count > 1
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Container(
+                              width: 150,
+                              child: Text(
+                                "Which shift are you joining?",
+                                maxLines: 2,
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.only(left: 10),
+                            child: DropdownButton2<int>(
+                              dropdownWidth: 100,
+                              dropdownOverButton: true,
+                              scrollbarAlwaysShow: true,
+                              dropdownMaxHeight: 150,
+                              offset: Offset(-10, 50),
+                              value: curShift,
+                              underline: Container(
+                                height: 2,
+                                color: Colors.blue,
+                              ),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  curShift = newValue!;
+                                });
+                              },
+                              items: Iterable.generate(widget.count, (count) {
+                                return DropdownMenuItem<int>(
+                                  value: count,
+                                  child: Container(
+                                    margin: EdgeInsets.all(4),
+                                    child: Text(
+                                      "Shift ${count + 1}",
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          )
+                        ],
+                      )
+                    : Container(),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text(
+                    "Are you driving?",
+                    style: TextStyle(fontSize: 14),
                   ),
-                  color: Colors.red,
-                  callback: () {
-                    Navigator.pop(context, false);
-                  },
-                  size: 55,
+                  Container(
+                    child: Checkbox(
+                        checkColor: Colors.white,
+                        fillColor: MaterialStateProperty.all(Colors.blue),
+                        value: isDriving,
+                        onChanged: (newValue) {
+                          setState(() {
+                            isDriving = newValue!;
+                          });
+                        }),
+                  )
+                ]),
+                isDriving
+                    ? Column(
+                        children: [
+                          Text(
+                            "How many besides yourself can you drive?",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            canDrive.toInt().toString(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 24),
+                          ),
+                          SizedBox(
+                              width: 300,
+                              child: CupertinoSlider(
+                                thumbColor: Colors.blue,
+                                min: 0,
+                                max: 8,
+                                value: canDrive,
+                                onChanged: (newRating) {
+                                  setState(() {
+                                    canDrive = newRating;
+                                  });
+                                },
+                              ))
+                        ],
+                      )
+                    : Container(),
+                Text(
+                  "Leave a comment?",
+                  style: TextStyle(fontSize: 14),
                 ),
-              ),
+                Container(
+                    height: 100, margin: EdgeInsets.all(5), child: commentField)
+              ],
             ),
-            Flexible(
-              flex: 1,
-              child: Container(
-                padding: EdgeInsets.only(left: 4),
-                child: EventButton(
-                  label: Icon(FontAwesomeIcons.check,
-                      color: Colors.green.shade800, size: 30),
-                  color: Colors.lightGreenAccent.shade700,
-                  callback: () {
-                    Navigator.of(context).pop();
-                    showDialog(
-                        barrierDismissible: false,
-                        context: context,
-                        builder: (context) => ResultDialog(
-                              updateParticipants: widget.update,
-                              actionName: "Join",
-                              result: addSelf(
-                                  MainUser.of(context).data.http.getHTTPTags(),
-                                  widget.event.id,
-                                  controller.text,
-                                  isDriving ? 1 : 0,
-                                  canDrive.toInt()),
-                            ));
-                  },
-                  size: 55,
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  flex: 1,
+                  child: Container(
+                    padding: EdgeInsets.only(right: 4),
+                    child: EventButton(
+                      label: Icon(
+                        FontAwesomeIcons.circleXmark,
+                        color: Colors.red.shade900,
+                        size: 30,
+                      ),
+                      color: Colors.red,
+                      callback: () {
+                        Navigator.pop(context, false);
+                      },
+                      size: 55,
+                    ),
+                  ),
                 ),
-              ),
-            )
+                Flexible(
+                  flex: 1,
+                  child: Container(
+                    padding: EdgeInsets.only(left: 4),
+                    child: EventButton(
+                      label: Icon(FontAwesomeIcons.check,
+                          color: Colors.green.shade800, size: 30),
+                      color: Colors.lightGreenAccent.shade700,
+                      callback: () {
+                        Navigator.of(context).pop();
+                        showDialog(
+                            barrierDismissible: false,
+                            context: context,
+                            builder: (context) => ResultDialog(
+                                  updateParticipants: widget.update,
+                                  actionName: "Join",
+                                  result: addSelf(
+                                      MainUser.of(context)
+                                          .data
+                                          .http
+                                          .getHTTPTags(),
+                                      MainUser.of(context).data.http.baseURL,
+                                      widget.event.id,
+                                      controller.text,
+                                      isDriving ? 1 : 0,
+                                      canDrive.toInt(),
+                                      curShift),
+                                ));
+                      },
+                      size: 55,
+                    ),
+                  ),
+                )
+              ],
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -992,7 +1203,7 @@ class _JoinDialogState extends State<JoinDialog> {
 class ResultDialog extends StatefulWidget {
   final Function updateParticipants;
   final String actionName;
-  final Future<bool> result;
+  final Future<String> result;
 
   const ResultDialog(
       {Key? key,
@@ -1014,17 +1225,11 @@ class _ResultDialogState extends State<ResultDialog> {
     super.initState();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Widget initCloseButton() {
     return Container(
       margin: EdgeInsets.only(top: 15),
       child: InkWell(
         borderRadius: BorderRadius.all(Radius.circular(15)),
-        // padding: EdgeInsets.all(0),
         child: Ink(
             width: 150,
             padding: EdgeInsets.all(5),
@@ -1061,7 +1266,7 @@ class _ResultDialogState extends State<ResultDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            child: FutureBuilder<bool>(
+            child: FutureBuilder<String>(
                 future: widget.result,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.active ||
@@ -1074,52 +1279,49 @@ class _ResultDialogState extends State<ResultDialog> {
                       ),
                     );
                   } else {
-                    if (snapshot.hasError) {
-                      print(snapshot.error.toString());
-                      print(snapshot.stackTrace.toString());
+                    String title, content;
 
-                      return Column(
-                        children: [
-                          Text(
-                              "An error occurred. Please report this for debugging and close the app",
-                              style: GoogleFonts.dmSerifDisplay(fontSize: 16)),
-                          close
-                        ],
-                      );
-                    } else if (snapshot.hasData) {
-                      String title, content;
-
-                      if (snapshot.data == true) {
+                    if (snapshot.hasData) {
+                      if (snapshot.data == 'success') {
                         title = "Success! ";
                         content =
                             "Your request has been successfully executed.";
                         widget.updateParticipants();
                       } else {
                         title = "Failure. ";
-                        content =
-                            "Your request has failed. This may be due to the event" +
-                                " recently locking, closing, or reaching max capacity";
+
+                        if (snapshot.data == 'http error') {
+                          content = "Your request has failed due to invalid HTTP" +
+                              "Navigate other tabs to re-establish connection.";
+                        } else {
+                          content =
+                              "Your request has failed. This may be due to the event" +
+                                  " recently locking, closing, or reaching max capacity";
+                        }
                       }
 
-                      return Column(
-                        children: [
-                          RichText(
-                              text: TextSpan(
-                                  text: (title),
-                                  style: GoogleFonts.dmSerifDisplay(
-                                      fontSize: 20, color: Colors.black),
-                                  children: [
-                                TextSpan(
-                                    text: content,
-                                    style: GoogleFonts.dmSerifDisplay(
-                                        fontSize: 16, color: Colors.black))
-                              ])),
-                          close
-                        ],
-                      );
+                    } else {
+                      title = "Unknown error";
+                      content = "";
                     }
+
+                    return Column(
+                      children: [
+                        RichText(
+                            text: TextSpan(
+                                text: (title),
+                                style: GoogleFonts.dmSerifDisplay(
+                                    fontSize: 20, color: Colors.black),
+                                children: [
+                                  TextSpan(
+                                      text: content,
+                                      style: GoogleFonts.dmSerifDisplay(
+                                          fontSize: 16, color: Colors.black))
+                                ])),
+                        close
+                      ],
+                    );
                   }
-                  return Text('State: ${snapshot.connectionState}');
                 }),
           )
         ],

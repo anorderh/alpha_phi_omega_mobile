@@ -1,3 +1,4 @@
+import 'package:beautiful_soup_dart/beautiful_soup.dart';
 import 'package:calendar_view/calendar_view.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -66,7 +67,7 @@ class CalendarData {
 
   late EventController eventController;
   int? monthProcessed;
-  late List<List<EventFull>> allDayEvents;
+  late Map<String, List<EventFull>> allDayEvents;
 
   CalendarData(DateTime current) {
     activeDate = current;
@@ -76,9 +77,7 @@ class CalendarData {
   void resetData() {
     eventController = EventController();
     focusedDate = activeDate;
-    allDayEvents = List.generate(7, (index) {
-      return [];
-    });
+    allDayEvents = {};
     monthProcessed = null;
   }
 
@@ -94,7 +93,7 @@ class CalendarData {
     monthProcessed = newMonth;
   }
 
-  void setNewAllDayEvents(List<List<EventFull>> newAllDayEvents) {
+  void setNewAllDayEvents(Map<String, List<EventFull>> newAllDayEvents) {
     allDayEvents = newAllDayEvents;
   }
 }
@@ -133,9 +132,9 @@ class Maintenance {
 // VALUES //
 /////////////
 
-String base_url = 'https://www.apoonline.org/alphadelta/memberhome.php';
 String profile_action = "action=profile";
 String upcomingEvents_action = "action=profile&panel=events";
+int refreshDefault = 3;
 
 Map<int, String> weekdayLibrary = {
   1: 'M',
@@ -147,21 +146,53 @@ Map<int, String> weekdayLibrary = {
   7: 'Su'
 };
 
-Map<String, CredInfo> reqLibrary = {
-  'Service': CredInfo(Colors.red, FontAwesomeIcons.handshakeAngle),
-  'Special': CredInfo(Colors.blue, FontAwesomeIcons.star),
-  'Fellowship': CredInfo(Colors.green, FontAwesomeIcons.peopleGroup),
-  'Leadership': CredInfo(Colors.purple, FontAwesomeIcons.flag),
-  'Fundraising': CredInfo(Colors.pink, FontAwesomeIcons.moneyBillWave),
-  'Interchapter': CredInfo(Colors.brown, FontAwesomeIcons.car),
-  'Philanthropy': CredInfo(Colors.cyan[900]!, FontAwesomeIcons.children),
-  'External Relations':
-      CredInfo(Colors.deepPurple, FontAwesomeIcons.addressCard),
-  'Required': CredInfo(Colors.lime[900]!, FontAwesomeIcons.calendarCheck),
-  'Open Forum': CredInfo(Colors.red.shade900, FontAwesomeIcons.comments),
-  'Chair': CredInfo(Colors.lightBlueAccent, FontAwesomeIcons.chair),
-  'Academic': CredInfo(Colors.pinkAccent, FontAwesomeIcons.graduationCap),
-  'Meeting': CredInfo(Colors.orange, FontAwesomeIcons.chalkboardUser)
+Map<String, Map<String, CredInfo>> chapterLibrary = {
+  "Alpha Delta": {
+    'Service': CredInfo(Colors.red, FontAwesomeIcons.handshakeAngle),
+    'Special': CredInfo(Colors.blue, FontAwesomeIcons.star),
+    'Fellowship': CredInfo(Colors.green, FontAwesomeIcons.peopleGroup),
+    'Leadership': CredInfo(Colors.purple, FontAwesomeIcons.flag),
+    'Fundraising': CredInfo(Colors.pink, FontAwesomeIcons.moneyBillWave),
+    'Interchapter': CredInfo(Colors.brown, FontAwesomeIcons.car),
+    'Philanthropy':
+        CredInfo(Colors.cyanAccent.shade700, FontAwesomeIcons.children),
+    'External Relations':
+        CredInfo(Colors.deepPurple, FontAwesomeIcons.addressCard),
+    'Required': CredInfo(Colors.lime[900]!, FontAwesomeIcons.calendarCheck),
+    'Open Forum': CredInfo(Colors.red.shade900, FontAwesomeIcons.comments),
+    'Chair': CredInfo(Colors.lightBlueAccent, FontAwesomeIcons.chair),
+    'Academic': CredInfo(Colors.pinkAccent, FontAwesomeIcons.graduationCap),
+    'Meeting': CredInfo(Colors.orange, FontAwesomeIcons.chalkboardUser),
+    'Study': CredInfo(Colors.orangeAccent, FontAwesomeIcons.school)
+  },
+  "Alpha Beta": {},
+};
+
+Map<String, String> greekAlphabet = {
+  "Alpha": 'Α',
+  "Beta": 'Β',
+  "Gamma": 'Γ',
+  "Delta": 'Δ',
+  'Epsilon': 'Ε',
+  'Zeta': 'Ζ',
+  'Eta': 'Η',
+  'Theta': 'Θ',
+  'Iota': 'Ι',
+  'Kappa': 'Κ',
+  'Lambda': 'Λ',
+  'Mu': 'Μ',
+  'Nu': 'Ν',
+  'Xi': 'Ξ',
+  'Omicron': 'Ο',
+  'Pi': 'Π',
+  'Rho': 'Ρ',
+  'Sigma': 'Σ',
+  'Tau': 'Τ',
+  'Upsilon': 'Υ',
+  'Phi': 'Φ',
+  'Chi': 'Χ',
+  'Psi': 'Ψ',
+  'Omega': 'Ω'
 };
 
 /////////////
@@ -235,8 +266,8 @@ class Participant {
 // METHODS //
 /////////////
 
-CredInfo pullCredInfo(String name) {
-  for (MapEntry entry in reqLibrary.entries) {
+CredInfo pullCredInfo(String name, String chapter) {
+  for (MapEntry entry in chapterLibrary[chapter]!.entries) {
     if (name.toUpperCase().contains(entry.key.toUpperCase())) {
       return entry.value;
     }

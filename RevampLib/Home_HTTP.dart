@@ -4,19 +4,27 @@ import 'package:example/RevampLib/UserData.dart';
 import 'package:example/RevampLib/AppData.dart';
 import 'CalendarHelpers.dart';
 import 'Calendar_HTTP.dart';
+import 'Login_HTTP.dart';
 
-Future<bool> scrapeUserInfo(UserData user, DateTime currentDate) async {
+Future<String> scrapeUserInfo(UserData user) async {
+  http.Response raw;
+  String userInfoURL = user.http.baseURL + '?' + profile_action;
+
+  // processing request
+  raw = await http.post(
+    Uri.parse(userInfoURL),
+    body: user.http.data,
+    headers: user.http.headers,
+  );
+  user.http.profileResponse = BeautifulSoup(raw.body);
+
+  // checking if http success
+  if (!verifyHTTP(user.http.profileResponse)) {
+    return "http error";
+  }
+
+  // checking if contents can be parsed
   try {
-    http.Response raw;
-    String userInfoURL = base_url + '?' + profile_action;
-
-    raw = await http.post(
-      Uri.parse(userInfoURL),
-      body: user.http.data,
-      headers: user.http.headers,
-    );
-    user.http.profileResponse = BeautifulSoup(raw.body);
-
     user.name = user.http.profileResponse
         .find('div', attrs: {'class': 'content-header'})!
         .children[0]
@@ -31,37 +39,46 @@ Future<bool> scrapeUserInfo(UserData user, DateTime currentDate) async {
     user.pictureURL = "http://www.apoonline.org/alphadelta/" +
         user.http.profileResponse.find('img')!['src']!;
 
-    user.greeting = deriveGreeting(currentDate);
-
-    print("USER INFO:\n${user.name}\n${user.position}\n");
+    user.greeting = deriveGreeting(DateTime.now());
   } catch (e) {
     print(e.toString());
-    return false;
-  }
-  return true;
-}
-
-Future<bool> scrapeUserContent(UserData user) async {
-  try {
-    await Future.wait([scrapeReqs(user), scrapeUpcomingEvents(user)]);
-  } catch (e) {
-    print(e.toString());
-    return false;
+    return "parse error";
   }
 
-  return true;
+  print("USER INFO:\n${user.name}\n${user.position}\n");
+  return "success";
 }
 
-Future<void> scrapeReqs(UserData user) async {
-  user.reqs = mapReqs(
-      _stringsFromTags(user.http.homeResponse.findAll(
-          // credit names
-          'a',
-          attrs: {'style': 'margin-bottom: .5em;display: block;color:black;'})),
-      _stringsFromTags(user.http.homeResponse.findAll(
-          // credit amounts
-          'span',
-          attrs: {'style': 'float:right; color:grey;'})));
+Future<List<String>> scrapeUserContent(UserData user,
+    {required bool ignore}) async {
+  return await Future.wait(ignore
+      ? [scrapeUpcomingEvents(user)]
+      : [scrapeUserInfo(user), scrapeReqs(user), scrapeUpcomingEvents(user)]);
+}
+
+Future<String> scrapeReqs(UserData user) async {
+  // checking if http success
+  if (!verifyHTTP(user.http.homeResponse)) {
+    return "http error";
+  } else {
+    try {
+      user.reqs = mapReqs(
+          _stringsFromTags(user.http.homeResponse.findAll(
+              // credit names
+              'a',
+              attrs: {
+                'style': 'margin-bottom: .5em;display: block;color:black;'
+              })),
+          _stringsFromTags(user.http.homeResponse.findAll(
+              // credit amounts
+              'span',
+              attrs: {'style': 'float:right; color:grey;'})));
+    } catch (e) {
+      return "parse error";
+    }
+
+    return "success";
+  }
 }
 
 Map<String, List<double>> mapReqs(List<String> types, List<String> amounts) {
@@ -102,9 +119,9 @@ List<String> _stringsFromTags(List<Bs4Element> tags) {
   return group;
 }
 
-Future<void> scrapeUpcomingEvents(UserData user) async {
+Future<String> scrapeUpcomingEvents(UserData user) async {
   http.Response raw;
-  String upcomingURL = base_url + '?' + upcomingEvents_action;
+  String upcomingURL = user.http.baseURL + '?' + upcomingEvents_action;
   List<String> eventLinks = [];
   int eventQuantity = 1;
 
@@ -114,25 +131,35 @@ Future<void> scrapeUpcomingEvents(UserData user) async {
     headers: user.http.headers,
   );
   user.http.upcomingEventsResponse = BeautifulSoup(raw.body);
+  if (!verifyHTTP(user.http.upcomingEventsResponse)) {
+    return "http error";
+  }
 
-  // finding all links and adding to List
-  user.http.upcomingEventsResponse
-      .findAll('div', attrs: {'class': 'calendar-title'}).forEach((tag) {
-    eventLinks.add(base_url + tag.a!['href']!);
-  });
+  try {
+    // finding all links and adding to List
+    user.http.upcomingEventsResponse
+        .findAll('div', attrs: {'class': 'calendar-title'}).forEach((tag) {
+      eventLinks.add(user.http.baseURL + tag.a!['href']!);
+    });
 
-  // processing all links simultaneously
-  user.setUpcomingEvents(
-      await Future.wait(Iterable.generate(eventLinks.length, (i) {
-    return addUpcomingEvent(user.http.getHTTPTags(), eventLinks[i], eventQuantity++);
-  })));
+    // processing all links simultaneously
+    user.setUpcomingEvents(
+        await Future.wait(Iterable.generate(eventLinks.length, (i) {
+      return addUpcomingEvent(user.http.getHTTPTags(), user.http.baseURL,
+          eventLinks[i], eventQuantity++);
+    })));
+  } catch (e) {
+    return "parse error";
+  }
 
   // sort scraped events
   user.upcomingEvents.sort((a, b) => a.compareTo(b));
 
   print("events passed");
+  return "success";
 }
 
-Future<EventFull> addUpcomingEvent(Map httpTags, String link, int quantity) async {
-  return await handleEvent(httpTags, link, quantity);
+Future<EventFull> addUpcomingEvent(
+    Map httpTags, String baseURL, String link, int quantity) async {
+  return await handleEvent(httpTags, baseURL, link, quantity);
 }

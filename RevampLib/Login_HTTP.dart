@@ -3,7 +3,7 @@ import 'package:beautiful_soup_dart/beautiful_soup.dart';
 import 'package:example/RevampLib/UserData.dart';
 import 'package:example/RevampLib/AppData.dart';
 
-Future<UserHTTP?> initHTTP(UserHTTP inputHTTP, String user, String pw) async {
+Future<void> initHTTP(UserHTTP inputHTTP, String user, String pw) async {
   // update user & pw
   inputHTTP.data['email'] = user;
   inputHTTP.data['password'] = pw;
@@ -14,7 +14,7 @@ Future<UserHTTP?> initHTTP(UserHTTP inputHTTP, String user, String pw) async {
 
   print("REQUEST #1: RETRIEVING PHPSESSID");
   var response = await http.post(
-    Uri.parse(base_url),
+    Uri.parse(inputHTTP.baseURL),
     body: inputHTTP.data,
     headers: inputHTTP.headers,
   );
@@ -23,7 +23,7 @@ Future<UserHTTP?> initHTTP(UserHTTP inputHTTP, String user, String pw) async {
 
   print("REQUEST #2: RETRIEVING CSRF");
   response = await http.post(
-    Uri.parse(base_url),
+    Uri.parse(inputHTTP.baseURL),
     body: inputHTTP.data,
     headers: inputHTTP.headers,
   );
@@ -32,21 +32,17 @@ Future<UserHTTP?> initHTTP(UserHTTP inputHTTP, String user, String pw) async {
 
   print("REQUEST 3: VALIDATING LOGIN");
   response = await http.post(
-    Uri.parse(base_url),
+    Uri.parse(inputHTTP.baseURL),
     body: inputHTTP.data,
     headers: inputHTTP.headers,
   );
 
   inputHTTP.homeResponse = BeautifulSoup(response.body);
-
-  if (verifyHTTP(inputHTTP)) {
-    return inputHTTP;
-  }
+  inputHTTP.validConnection = verifyHTTP(inputHTTP.homeResponse);
 }
 
-bool verifyHTTP(UserHTTP _http) {
-  if (_http.homeResponse.find('div', attrs: {'id': 'topheader-name'}) != null) {
-    _http.validLogin = true;
+bool verifyHTTP(BeautifulSoup response) {
+  if (response.find('div', attrs: {'id': 'topheader-name'}) != null) {
     return true;
   } else {
     return false;

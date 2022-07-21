@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,80 +11,148 @@ import '../RevampLib/Settings.dart';
 import 'EventView.dart';
 import 'Home_HTTP.dart';
 import 'UserData.dart';
+import 'Login_HTTP.dart';
+import 'Home_Loading.dart';
+import 'package:sizer/sizer.dart';
 import 'package:expandable_page_view/expandable_page_view.dart';
+import 'ErrorHandler.dart';
 
 // HOME WIDGET
 class Home extends StatefulWidget {
-  final Future<bool> info;
-  final Future<bool> content;
+  final Future<List<String>> content;
+  final Maintenance maintenance;
 
-  const Home(
-      {required this.info,
-      required this.content,
-      Key? key})
+  const Home({required this.content, Key? key, required this.maintenance})
       : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with SingleTickerProviderStateMixin{
-  late Future<bool> activeContent;
+class _HomeState extends State<Home> with TickerProviderStateMixin {
+  late Future<List<String>> activeContent;
   late PageController pageController;
   late TabController tabController;
-  late Maintenance maintenance;
 
   @override
   void initState() {
     activeContent = widget.content;
-
     super.initState();
   }
 
   @override
   void didChangeDependencies() {
-    maintenance = MainApp.of(context).maintenance;
-    pageController = PageController(initialPage: maintenance.homeIndex);
-    tabController = TabController(initialIndex: maintenance.homeIndex, length: 2, vsync: this);
-    maintenance.setRefresh(_refreshContent);
+    pageController = PageController(initialPage: widget.maintenance.homeIndex);
+    tabController = TabController(
+        initialIndex: widget.maintenance.homeIndex, length: 2, vsync: this);
+    widget.maintenance.setRefresh(_refreshContent);
 
     super.didChangeDependencies();
   }
 
   void _refreshContent() {
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {
-      activeContent = scrapeUserContent(MainUser.of(context).data);
-      pageController = PageController(initialPage: maintenance.homeIndex);
-    }));
+          activeContent =
+              scrapeUserContent(MainUser.of(context).data, ignore: true);
+          pageController =
+              PageController(initialPage: widget.maintenance.homeIndex);
+        }));
+  }
+
+  Future _refreshScrape() {
+    return Future.delayed(Duration(seconds: 1), () {
+      setState(() {
+        activeContent =
+            scrapeUserContent(MainUser.of(context).data, ignore: false);
+        pageController =
+            PageController(initialPage: widget.maintenance.homeIndex);
+      });
+    });
+  }
+
+  void _promptDialog(String error) {
+    if (error == 'http error') {
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) =>
+              HTTPRefreshDialog(refreshScrape: _refreshScrape));
+    } else {
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) => ErrorDialog(title: error));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return ScrollConfiguration(
         behavior: const ScrollBehavior().copyWith(overscroll: false),
-        child: ListView(physics: ClampingScrollPhysics(), children: [
-          Container(
-            height: 260,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Flexible(
-                    // settings Icon button
-                    child: CheckSettingsButton(),
-                  ),
-                  UserHeader(scrape: widget.info),
-                ],
-              ),
-            ),
-          ),
-          UserContent(
-            scrape: activeContent,
-            pageC: pageController,
-            tabC: tabController,
-          )
-        ]));
+        child: RefreshIndicator(
+            triggerMode: RefreshIndicatorTriggerMode.anywhere,
+            onRefresh: _refreshScrape,
+            child: FutureBuilder<List<String>>(
+                future: activeContent,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.active ||
+                      snapshot.connectionState == ConnectionState.waiting) {
+                    return Column(
+                      children: [
+                        Container(
+                          height: 260,
+                          child: const Align(
+                            alignment: Alignment.bottomCenter,
+                            child: LoadingHeader(),
+                          ),
+                        ),
+                        widget.maintenance.homeIndex == 0
+                            ? LoadingReqs()
+                            : LoadingEvents()
+                      ],
+                    );
+                  } else {
+                    if (snapshot.hasData) {
+                      if (snapshot.data!.contains("http error")) {
+                        Future.delayed(Duration.zero, () => _promptDialog("http error"));
+
+                      } else if (snapshot.data!.contains("parse error")) {
+                        Future.delayed(Duration.zero, () => _promptDialog("Parse error"));
+
+                      } else {
+                        return ListView(
+                            physics: BouncingScrollPhysics(
+                                parent: AlwaysScrollableScrollPhysics()),
+                            children: [
+                              Container(
+                                height: 260,
+                                child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        // settings Icon button
+                                        child: CheckSettingsButton(),
+                                      ),
+                                      UserHeader(),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              UserContent(
+                                pageC: pageController,
+                                tabC: tabController,
+                              )
+                            ]);
+                      }
+                    } else {
+                      Future.delayed(Duration.zero, () => _promptDialog("Reload error"));
+                    }
+
+                    return Container();
+                  }
+                })));
   }
 }
 
@@ -105,9 +175,7 @@ class CheckSettingsButton extends StatelessWidget {
 
 // USER HEADER
 class UserHeader extends StatefulWidget {
-  final Future<bool> scrape;
-
-  const UserHeader({required this.scrape, Key? key}) : super(key: key);
+  const UserHeader({Key? key}) : super(key: key);
 
   @override
   _UserHeaderState createState() => _UserHeaderState();
@@ -124,90 +192,56 @@ class _UserHeaderState extends State<UserHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-        future: widget.scrape,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.active ||
-              snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.blue,
+    return Padding(
+      padding: EdgeInsets.only(left: 15, right: 15, bottom: 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                child: Text(
+                  user.greeting!,
+                  style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 18,
+                      height: 0.6,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
-            );
-          } else {
-            if (snapshot.hasData) {
-              if (snapshot.data!) {
-                return Padding(
-                  padding: EdgeInsets.only(left: 15, right: 15, bottom: 15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            child: Text(
-                              user.greeting!,
-                              style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 18,
-                                  height: 0.6,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          Container(
-                              child: Text(
-                            user.name!.split(" ")[0],
-                            style: TextStyle(
-                              fontSize: 36,
-                            ),
-                          )),
-                          Container(
-                              child: Text(
-                            user.position!,
-                            style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 18,
-                                height: 1,
-                                fontWeight: FontWeight.bold),
-                          ))
-                        ],
-                      ),
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                                image: CachedNetworkImageProvider(
-                                    user.pictureURL!),
-                                fit: BoxFit.cover)),
-                      )
-                    ],
-                  ),
-                );
-              } else {
-                return Container(
-                  alignment: Alignment.center,
-                  padding: EdgeInsets.all(15),
+              Container(
                   child: Text(
-                      "An error occurred. Please refresh or close the app.",
-                      style: GoogleFonts.dmSerifDisplay(fontSize: 16)),
-                );
-              }
-            }
-          }
-          return Container(
-            alignment: Alignment.center,
-            padding: EdgeInsets.all(5),
-            child: Text('State: ${snapshot.connectionState}'),
-          );
-        });
+                user.name!.split(" ")[0],
+                style: TextStyle(
+                  fontSize: 36,
+                ),
+              )),
+              Container(
+                  child: Text(
+                user.position!,
+                style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 18,
+                    height: 1,
+                    fontWeight: FontWeight.bold),
+              ))
+            ],
+          ),
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                    image: CachedNetworkImageProvider(user.pictureURL!),
+                    fit: BoxFit.cover)),
+          )
+        ],
+      ),
+    );
   }
 }
 
@@ -257,7 +291,7 @@ class _HomeTabBarState extends State<HomeTabBar> {
           controller: widget.controller,
           onTap: (newIndex) {
             setState(() {
-              widget.setIndex(newIndex);
+              widget.setIndex(newIndex, "tab");
             });
           },
           tabs: [
@@ -272,13 +306,10 @@ class _HomeTabBarState extends State<HomeTabBar> {
 }
 
 class UserContent extends StatefulWidget {
-  final Future<bool> scrape;
   final PageController pageC;
   final TabController tabC;
 
-  const UserContent(
-      {required this.scrape,
-      Key? key, required this.pageC, required this.tabC})
+  const UserContent({Key? key, required this.pageC, required this.tabC})
       : super(key: key);
 
   @override
@@ -301,83 +332,51 @@ class _UserContentState extends State<UserContent> {
     super.didChangeDependencies();
   }
 
-  void setIndex(int newIndex) {
-    setState(() {
-      maintenance.setIndex(newIndex);
-      widget.pageC.animateToPage(newIndex,
-          duration: Duration(milliseconds: 250), curve: Curves.ease);
+  void setIndex(int newIndex, String input) {
+    if (input == "page") {
       widget.tabC.animateTo(newIndex,
           duration: Duration(milliseconds: 250), curve: Curves.ease);
+    } else {
+      widget.pageC.animateToPage(newIndex,
+          duration: Duration(milliseconds: 250), curve: Curves.ease);
+    }
+
+    setState(() {
+      maintenance.setIndex(newIndex);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    print("home content built");
+    print("home content built " + DateTime.now().toString());
 
-    return FutureBuilder<bool>(
-        future: widget.scrape,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.active ||
-              snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              height: 300,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.blue,
-                ),
-              ),
-            );
-          } else {
-            if (snapshot.hasError) {
-              print(snapshot.error.toString());
-              print(snapshot.stackTrace.toString());
-
-              return Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.all(15),
-                child: Text(
-                    "An error occurred. Please refresh or close the app.",
-                    style: GoogleFonts.dmSerifDisplay(fontSize: 16)),
-              );
-            } else if (snapshot.hasData) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  HomeTabBar(widget.tabC, setIndex),
-                  ExpandablePageView(
-                    onPageChanged: (pageIndex) {
-                      if (!widget.tabC.indexIsChanging) {
-                        setState(() {
-                          setIndex(pageIndex);
-                        });
-                      }
-                    },
-                    controller: widget.pageC,
-                    children: [
-                      UserReqs(user: user, reqReload: snapshot.data!),
-                      UserEvents(user: user, eventReload: snapshot.data!)
-                    ],
-                  )
-                ],
-              );
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        HomeTabBar(widget.tabC, setIndex),
+        ExpandablePageView(
+          onPageChanged: (pageIndex) {
+            if (!widget.tabC.indexIsChanging) {
+              setState(() {
+                setIndex(pageIndex, "page");
+              });
             }
-          }
-          return Container(
-            alignment: Alignment.center,
-            padding: EdgeInsets.all(5),
-            child: Text('State: ${snapshot.connectionState}'),
-          );
-        });
+          },
+          controller: widget.pageC,
+          children: [
+            UserReqs(reqs: user.reqs),
+            UserEvents(events: user.upcomingEvents)
+          ],
+        )
+      ],
+    );
   }
 }
 
 class UserReqs extends StatefulWidget {
-  final UserData user;
-  final bool reqReload;
+  final Map<String, List<double>> reqs;
 
-  const UserReqs({Key? key, required this.reqReload, required this.user}) : super(key: key);
+  const UserReqs({Key? key, required this.reqs}) : super(key: key);
 
   @override
   _UserReqsState createState() => _UserReqsState();
@@ -390,7 +389,7 @@ class _UserReqsState extends State<UserReqs> {
 
   @override
   void initState() {
-    reqKeys = widget.user.reqs.keys.toList();
+    reqKeys = widget.reqs.keys.toList();
     calcReqListHeight();
     super.initState();
   }
@@ -400,14 +399,28 @@ class _UserReqsState extends State<UserReqs> {
   }
 
   void calcReqListHeight() {
-    reqListHeight = ((reqKeys.length / 2) + (reqKeys.length % 2)) *
+    double temp = ((reqKeys.length / 2) + (reqKeys.length % 2)) *
         (reqTileHeight - 25) *
         1.0;
+
+    if (temp < 350) {
+      reqListHeight = 350;
+    } else {
+      reqListHeight = temp;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (reqKeys.length != 0) {
+    if (reqKeys.length == 0) {
+      return Container(
+          height: reqListHeight,
+          padding: EdgeInsets.only(top: 20, left: 20, right: 20),
+          alignment: Alignment.topCenter,
+          child: Text("You currently do not have any requirements.",
+              style: GoogleFonts.dmSerifDisplay(
+                  fontSize: 20, fontStyle: FontStyle.italic)));
+    } else {
       return Container(
         height: reqListHeight,
         child: GridView.builder(
@@ -420,10 +433,11 @@ class _UserReqsState extends State<UserReqs> {
                 crossAxisSpacing: 20.0,
                 childAspectRatio: 1.1),
             itemBuilder: (context, index) {
-              CredInfo curInfo = pullCredInfo(reqKeys[index]);
+              CredInfo curInfo = pullCredInfo(
+                  reqKeys[index], MainUser.of(context).data.http.chapter);
 
               double credFontSize = 60;
-              List<double> credValues = widget.user.reqs[reqKeys[index]]!;
+              List<double> credValues = widget.reqs[reqKeys[index]]!;
               if (credValues[0] % 1 != 0 || credValues[0] > 10) {
                 credFontSize *= 0.5;
               }
@@ -547,29 +561,21 @@ class _UserReqsState extends State<UserReqs> {
               );
             }),
       );
-    } else {
-      return Container(
-          margin: EdgeInsets.only(top: 20, left: 20, right: 20),
-          alignment: Alignment.center,
-          child: Text("You currently do not have any requirements.",
-              style: GoogleFonts.dmSerifDisplay(fontSize: 24)));
     }
   }
-
 }
 
 class UserEvents extends StatefulWidget {
-  final UserData user;
-  final bool eventReload;
+  final List<EventFull> events;
 
-  const UserEvents({Key? key, required this.eventReload, required this.user}) : super(key: key);
+  const UserEvents({Key? key, required this.events}) : super(key: key);
 
   @override
   _UserEventsState createState() => _UserEventsState();
 }
 
 class _UserEventsState extends State<UserEvents> {
-  late double eventListHeight;
+  int? splitIndex;
   int eventTileHeight = 75;
 
   @override
@@ -578,30 +584,99 @@ class _UserEventsState extends State<UserEvents> {
     super.initState();
   }
 
-  void calcEventListHeight() {
-    double temp = (eventTileHeight + 40) * widget.user.upcomingEvents.length * 1.0;
+  @override
+  void didChangeDependencies() {
+    DateTime start =
+        getNextWeekStart(MainApp.of(context).mainCalendar.activeDate);
+
+    for (int i = 0; i < widget.events.length; i++) {
+      if (widget.events[i].date.compareTo(start) >= 0) {
+        splitIndex = i;
+        break;
+      }
+    }
+    super.didChangeDependencies();
+  }
+
+  double calcEventListHeight() {
+    double temp = 50 + (eventTileHeight + 12) * widget.events.length * 1.0;
 
     if (temp < 350) {
-      eventListHeight = 350;
+      return 350;
     } else {
-      eventListHeight = temp;
+      return temp;
     }
+  }
+
+  DateTime getNextWeekStart(DateTime input) {
+    return input.add(Duration(days: 7 - (input.weekday - 1)));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.user.upcomingEvents.isNotEmpty) {
+    if (widget.events.isEmpty) {
       return Container(
-          height: eventListHeight,
+          height: calcEventListHeight(),
+          padding: EdgeInsets.only(top: 20, left: 20, right: 20),
+          alignment: Alignment.topCenter,
+          child: Text("You are currently not signed up for any events.",
+              style: GoogleFonts.dmSerifDisplay(
+                  fontSize: 20, fontStyle: FontStyle.italic)));
+    } else {
+      return Container(
+        height: calcEventListHeight(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            splitIndex == 0
+                ? Container()
+                : UserEventList(
+                    label: "This week",
+                    events: widget.events.sublist(0, splitIndex)),
+            splitIndex == null
+                ? Container()
+                : UserEventList(
+                    label: "Later",
+                    events: widget.events
+                        .sublist(splitIndex!, widget.events.length))
+          ],
+        ),
+      );
+    }
+  }
+}
+
+class UserEventList extends StatelessWidget {
+  final String label;
+  final List<EventFull> events;
+  double eventTileHeight = 75;
+
+  UserEventList({required this.label, required this.events, Key? key})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(top: 5, bottom: 5),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+            child: Text(label,
+                style: GoogleFonts.dmSerifDisplay(
+                  color: Colors.black,
+                  fontSize: 16,
+                )),
+            padding: EdgeInsets.only(left: 15, right: 15)),
+        Container(
+          height: (eventTileHeight + 8) * events.length,
           child: ListView.builder(
-            padding: EdgeInsets.only(top: 5, left: 25, right: 25),
+            padding: EdgeInsets.only(left: 25, right: 25),
             physics: NeverScrollableScrollPhysics(),
-            itemCount: widget.user.upcomingEvents.length,
+            itemCount: events.length,
             itemBuilder: (context, index) {
-              CredInfo info = pullCredInfo(widget.user.upcomingEvents[index].cred);
-              bool hasTimes =
-                  (widget.user.upcomingEvents[index].start != null) ? true : false;
-              EventFull event = widget.user.upcomingEvents[index];
+              EventFull event = events[index];
+              CredInfo info = pullCredInfo(
+                  event.cred, MainUser.of(context).data.http.chapter);
+              bool hasTimes = (event.start != null) ? true : false;
 
               return Padding(
                 padding: EdgeInsets.only(top: 8),
@@ -610,10 +685,9 @@ class _UserEventsState extends State<UserEvents> {
                   splashColor: HSLColor.fromColor(info.color)
                       .withLightness(0.6)
                       .toColor(),
-                  // padding: EdgeInsets.all(0),
                   child: Ink(
-                    width: MediaQuery.of(context).size.width,
-                    height: eventTileHeight * 1.0,
+                    width: 100.w,
+                    height: eventTileHeight,
                     decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
@@ -711,15 +785,9 @@ class _UserEventsState extends State<UserEvents> {
                 ),
               );
             },
-          ));
-    } else {
-      return Container(
-          height: eventListHeight,
-          padding: EdgeInsets.only(top: 20, left: 20, right: 20),
-          alignment: Alignment.topCenter,
-          child: Text("You are currently not signed up for any events.",
-              style: GoogleFonts.dmSerifDisplay(
-                  fontSize: 20, fontStyle: FontStyle.italic)));
-    }
+          ),
+        )
+      ]),
+    );
   }
 }

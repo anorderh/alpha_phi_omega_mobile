@@ -145,11 +145,6 @@ class SettingsButtons extends StatelessWidget {
 
   const SettingsButtons({Key? key, required this.user}) : super(key: key);
 
-  void Logout(BuildContext context) {
-    user.resetData();
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(

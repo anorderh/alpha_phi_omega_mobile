@@ -9,24 +9,28 @@ import '../RevampLib/Calendar.dart';
 import 'Home_HTTP.dart';
 import 'AppData.dart';
 import 'UserData.dart';
+import 'package:sizer/sizer.dart';
 
 class Base extends StatefulWidget {
-  const Base({Key? key}) : super(key: key);
+  final UserData user;
+
+  const Base({Key? key, required this.user}) : super(key: key);
 
   @override
   BaseState createState() => BaseState();
 }
 
-class BaseState extends State<Base> with SingleTickerProviderStateMixin {
+class BaseState extends State<Base> with TickerProviderStateMixin {
   PersistentTabController _controller = PersistentTabController();
+  List<IconData> icons = [Icons.home_rounded, Icons.event_rounded];
+
   late Maintenance appMaintenance;
-  late List<IconData> icons;
+  late Future<List<String>> scrape;
   late List<Widget> tabs;
 
   @override
   void initState() {
-    icons = [Icons.home_rounded, Icons.event_rounded];
-
+    scrape = scrapeUserContent(widget.user, ignore: false);
     super.initState();
   }
 
@@ -36,10 +40,10 @@ class BaseState extends State<Base> with SingleTickerProviderStateMixin {
 
     tabs = [
       Home(
-          info: scrapeUserInfo(MainUser.of(context).data, MainApp.of(context).mainCalendar.activeDate),
-          content: scrapeUserContent(MainUser.of(context).data)
+          content: scrape,
+          maintenance: appMaintenance
       ),
-      Calendar(current: MainApp.of(context).mainCalendar.activeDate)
+      Calendar(current: System.of(context).currentDate)
     ];
     super.didChangeDependencies();
   }
@@ -107,7 +111,7 @@ class CustomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       // BOTTOM NAVIGATION BAR
-      width: MediaQuery.of(context).size.width,
+      width: 100.w,
       height: 80,
       decoration: BoxDecoration(
           color: Colors.white,
@@ -151,7 +155,7 @@ class IconBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.transparent,
-      width: MediaQuery.of(context).size.width / 3,
+      width: 33.w,
       child: IconButton(
         onPressed: onPressed,
         icon: Icon(icon, size: 32, color: selected ? Colors.blue : Colors.grey),

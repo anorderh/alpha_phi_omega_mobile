@@ -35,7 +35,10 @@ class UserHTTP {
   late BeautifulSoup profileResponse;
   late BeautifulSoup upcomingEventsResponse;
   late BeautifulSoup calendarResponse;
-  bool validLogin = false;
+
+  late String chapter;
+  late String baseURL;
+  bool validConnection= false;
 
   Map<String, String> data = {
     'redirect': 'memberhome.php',
@@ -47,11 +50,18 @@ class UserHTTP {
     'Accept-Encoding': 'gzip, deflate, br'
   };
 
+  UserHTTP(String chapter) {
+    setChapter(chapter);
+  }
+
+  void setChapter(String input) {
+    chapter = input;
+    baseURL =
+        'https://www.apoonline.org/${chapter.replaceAll(" ", "").toLowerCase()}/memberhome.php';
+  }
+
   Map<String, Map<String, String>> getHTTPTags() {
-    return {
-      'data': data,
-      'headers': headers
-    };
+    return {'data': data, 'headers': headers};
   }
 
   void setCSRFToken(String token) {
@@ -78,8 +88,8 @@ class UserHTTP {
     calendarResponse = soup;
   }
 
-  void setLogin(bool status) {
-    validLogin = status;
+  void setStatus(bool status) {
+    validConnection = status;
   }
 }
 
@@ -101,7 +111,6 @@ class UserData {
   }
 
   void resetData() {
-    http = UserHTTP();
     name = email = pictureURL = position = greeting = null;
     reqs = {};
     upcomingEvents = [];
@@ -132,4 +141,9 @@ class UserData {
   void setUpcomingEvents(List<EventFull> newUpcoming) {
     upcomingEvents = newUpcoming;
   }
+}
+
+void Logout(BuildContext context) {
+  MainUser.of(context).data.resetData();
+  Navigator.of(context).popUntil((route) => route.isFirst);
 }
