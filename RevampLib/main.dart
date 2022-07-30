@@ -1,21 +1,22 @@
+///
+/// START - defines and runs MyApp
+///
+/// Created by Anthony Norderhaug
+/// 7/30/2022
+/// EMAIL: anthony@norderhaug.org, IG: nordenhagen_anthony
+///
+
 import 'package:flutter/material.dart';
-import 'Login.dart';
-import '../Frontend/bottom_nav.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'Login/Login.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:example/EventPage/EventDialog/calcDate.dart';
 import 'package:calendar_view/calendar_view.dart';
-import 'package:flutter/services.dart';
-import 'package:example/RevampLib/UserData.dart';
-import 'package:example/RevampLib/AppData.dart';
+import 'package:example/RevampLib/Data/UserData.dart';
+import 'package:example/RevampLib/Data/AppData.dart';
 import 'package:sizer/sizer.dart';
+import 'Internal/AboutApp_Constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-      overlays: [SystemUiOverlay.bottom]);
 
   runApp(const MyApp());
 }
@@ -23,24 +24,28 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    // calendar_view package
     return CalendarControllerProvider(
       controller: EventController(),
+      // AppData.dart
       child: System(
-        version: "1.0",
-        lastUpdated: DateTime(2022, 7, 13),
-        currentDate: DateTime(2022, 7, 19),
+        version: version,
+        lastUpdated: lastUpdated,
+        currentDate: DateTime.now(),
+        tracker: ExceptionTracker(),
+        // UserData.dart
         child: MainUser(
           data: UserData(),
+          // Sizer package
           child: Sizer(builder: (context, orientation, deviceType) {
             return MaterialApp(
               title: 'Flutter Demo',
               theme: ThemeData(
                   primarySwatch: Colors.blue,
                   textTheme: GoogleFonts.dmSerifDisplayTextTheme()),
-              home: LoginBody(),
+              home: LoginBody(), // Login.dart
             );
           }),
         ),
