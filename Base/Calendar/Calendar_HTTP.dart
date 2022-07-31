@@ -5,8 +5,8 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:beautiful_soup_dart/beautiful_soup.dart';
-import 'package:example/RevampLib/Data/AppData.dart';
-import 'package:example/RevampLib/Data/UserData.dart';
+import '../../Data/AppData.dart';
+import '../../Data/UserData.dart';
 import 'package:calendar_view/calendar_view.dart';
 import '../../Internal/APOM_Objects.dart';
 import '../../Login/Login_HTTP.dart';

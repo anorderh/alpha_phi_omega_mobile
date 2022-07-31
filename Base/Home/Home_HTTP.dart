@@ -5,7 +5,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:beautiful_soup_dart/beautiful_soup.dart';
-import 'package:example/RevampLib/Data/UserData.dart';
+import '../../Data/UserData.dart';
 import '../../Internal/APOM_Constants.dart';
 import '../Calendar/CalendarHelpers.dart';
 import '../Calendar/Calendar_HTTP.dart';

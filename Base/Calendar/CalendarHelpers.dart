@@ -1,6 +1,8 @@
 ///
 /// Internal methods to help Calendar.dart
 
+import 'dart:html';
+
 import 'package:calendar_view/calendar_view.dart';
 import 'package:intl/intl.dart';
 import '../../Internal/APOM_Objects.dart';

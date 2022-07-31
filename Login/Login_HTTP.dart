@@ -5,7 +5,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:beautiful_soup_dart/beautiful_soup.dart';
-import 'package:example/RevampLib/Data/UserData.dart';
+import '../../Data/UserData.dart';
 
 // Creating valid session to log into www.appon.org.
 Future<String> initHTTP(UserHTTP inputHTTP, String user, String pw) async {

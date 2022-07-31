@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'Login/Login.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:calendar_view/calendar_view.dart';
-import 'package:example/RevampLib/Data/UserData.dart';
-import 'package:example/RevampLib/Data/AppData.dart';
+import 'Data/UserData.dart';
+import 'Data/AppData.dart';
 import 'package:sizer/sizer.dart';
 import 'Internal/AboutApp_Constants.dart';
 

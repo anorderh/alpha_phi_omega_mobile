@@ -2,7 +2,7 @@
 /// Calendar tab to view events on www.apoon.org
 ///
 
-import 'package:example/RevampLib/Base/Calendar/Calendar_HTTP.dart';
+import 'Calendar_HTTP.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -14,10 +14,10 @@ import '../../Data/UserData.dart';
 import 'package:calendar_view/calendar_view.dart';
 import 'package:sizer/sizer.dart';
 import '../../Internal/APOM_Constants.dart';
-import '../../Internal/APOM_Objects.dart';
 import '../../Internal/ErrorHandler.dart';
 import '../EventView/EventView.dart';
 import '../../Internal/TransitionHandler.dart';
+import '../../Internal/APOM_Objects.dart';
 
 class Calendar extends StatefulWidget {
   final DateTime current;

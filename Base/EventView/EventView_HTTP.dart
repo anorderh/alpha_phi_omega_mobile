@@ -4,7 +4,7 @@
 
 import 'dart:io';
 import 'package:beautiful_soup_dart/beautiful_soup.dart';
-import 'package:example/RevampLib/Login/Login_HTTP.dart';
+import '../../Login/Login_HTTP.dart';
 import 'package:http/http.dart' as http;
 import '../../Internal/APOM_Objects.dart';
 
