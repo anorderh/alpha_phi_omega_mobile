@@ -1,5 +1,6 @@
 ///
 /// Dialogs prompted when error detected
+///
 
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
@@ -119,7 +120,6 @@ class _HTTPRefreshDialogState extends State<HTTPRefreshDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-        backgroundColor: Colors.lightBlue[50],
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(15.0))),
         title: Column(
@@ -204,7 +204,6 @@ class _ErrorDialogState extends State<ErrorDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-        backgroundColor: Colors.lightBlue[50],
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(15.0))),
         title: Column(

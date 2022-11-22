@@ -11,7 +11,7 @@ import 'SettingsPage.dart';
 import '../Internal/URLHandler.dart';
 
 class AboutApp extends StatefulWidget {
-  const AboutApp({Key? key}) : super(key: key);
+  AboutApp({Key? key}) : super(key: key);
 
   @override
   _AboutAppState createState() => _AboutAppState();
@@ -19,6 +19,7 @@ class AboutApp extends StatefulWidget {
 
 class _AboutAppState extends State<AboutApp> with SingleTickerProviderStateMixin{
   late TabController controller;
+  late ThemeData theme;
 
   List<Widget> tabs = [
     Tab(text: "PRIVACY"),
@@ -36,6 +37,12 @@ class _AboutAppState extends State<AboutApp> with SingleTickerProviderStateMixin
   }
 
   @override
+  void didChangeDependencies() {
+    theme = Theme.of(context);
+    super.didChangeDependencies();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SettingsPage(
       title: "About App",
@@ -48,7 +55,7 @@ class _AboutAppState extends State<AboutApp> with SingleTickerProviderStateMixin
               child: TabBar(
                 overlayColor: MaterialStateProperty.all(Colors.transparent),
                 isScrollable: true,
-                labelColor: Colors.black,
+                labelColor: theme.colorScheme.secondary,
                 unselectedLabelColor: Colors.grey,
                 labelStyle: GoogleFonts.carroisGothic(fontSize: 24),
                 unselectedLabelStyle: GoogleFonts.carroisGothic(fontSize: 12),
@@ -105,8 +112,7 @@ class _WhatIsAPOState extends State<WhatIsAPO> {
                               textAlign: TextAlign.center,
                               maxLines: 6,
                               text: TextSpan(
-                                  style: GoogleFonts.dmSerifDisplay(
-                                      color: Colors.black, fontSize: 18),
+                                  style: GoogleFonts.dmSerifDisplay(fontSize: 18, color: Theme.of(context).colorScheme.secondary),
                                   children: [
                                     TextSpan(
                                         text: "Alpha Phi Omega",
@@ -119,16 +125,14 @@ class _WhatIsAPOState extends State<WhatIsAPO> {
                           image: AssetImage("assets/whatisAPO2.jpeg"),
                           textWidget: Text(
                             'For the past 14 years (since its 2008 rechartering), the Alpha Delta chapter  @ SDSU has been committed to developing students into stronger Leaders, Friends, and Servants for those in need.',
-                            style: GoogleFonts.dmSerifDisplay(
-                                color: Colors.black, fontSize: 18),
+                            style: GoogleFonts.dmSerifDisplay(fontSize: 18),
                             textAlign: TextAlign.center,
                           )),
                       APOPage(
                           image: AssetImage("assets/whatisAPO3.jpeg"),
                           textWidget: Text(
                             'Coordinating with San Diego-based orgs, we offer members the opportunity to hone their professional skills, develop stronger bonds with each other, and truly realize the merit of service.',
-                            style: GoogleFonts.dmSerifDisplay(
-                                color: Colors.black, fontSize: 18),
+                            style: GoogleFonts.dmSerifDisplay(fontSize: 18),
                             textAlign: TextAlign.center,
                           )),
                       APOPage(
@@ -136,8 +140,7 @@ class _WhatIsAPOState extends State<WhatIsAPO> {
                           textWidget: LinkableText(
                             text:
                                 'With 470,000 members across 375 different campuses, it is our vision to be the premier leadership development organization for all University students. If you are interested in joining, please contact our Recruitment Chair at external@aposdsu.org.',
-                            style: GoogleFonts.dmSerifDisplay(
-                                color: Colors.black, fontSize: 18),
+                            style: GoogleFonts.dmSerifDisplay(fontSize: 18),
                             align: TextAlign.center,
                           )),
                     ],
@@ -217,16 +220,14 @@ class _FeaturesState extends State<Features> {
                           textWidget: Text(
                             '1. Track requirements and events you’re signed up for.',
                             maxLines: 3,
-                            style: GoogleFonts.dmSerifDisplay(
-                                color: Colors.black, fontSize: 18),
+                            style: GoogleFonts.dmSerifDisplay(fontSize: 18),
                             textAlign: TextAlign.center,
                           )),
                       FeaturesPage(
                         image: [Image.asset('assets/featuresCalendar.png')],
                         textWidget: Text(
                           '2. Utilize a day-view calendar to learn about events Alpha Delta is currently organizing.',
-                          style: GoogleFonts.dmSerifDisplay(
-                              color: Colors.black, fontSize: 18),
+                          style: GoogleFonts.dmSerifDisplay(fontSize: 18),
                           maxLines: 3,
                           textAlign: TextAlign.center,
                         ),
@@ -235,8 +236,7 @@ class _FeaturesState extends State<Features> {
                         image: [Image.asset('assets/featuresEV.png')],
                         textWidget: Text(
                           '3. Event details on the go, including a description, location, date, credit, host, and participants.',
-                          style: GoogleFonts.dmSerifDisplay(
-                              color: Colors.black, fontSize: 18),
+                          style: GoogleFonts.dmSerifDisplay(fontSize: 18),
                           maxLines: 3,
                           textAlign: TextAlign.center,
                         ),
@@ -244,9 +244,8 @@ class _FeaturesState extends State<Features> {
                       FeaturesPage(
                         image: [Image.asset('assets/featuresJoin.png')],
                         textWidget: Text(
-                          '4. Join and leave events with immediate updates on APOON.org',
-                          style: GoogleFonts.dmSerifDisplay(
-                              color: Colors.black, fontSize: 18),
+                          '4. Join and leave events with immediate updates on www.apoonline.org',
+                          style: GoogleFonts.dmSerifDisplay(fontSize: 18),
                           maxLines: 3,
                           textAlign: TextAlign.center,
                         ),

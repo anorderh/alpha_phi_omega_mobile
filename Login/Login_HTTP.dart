@@ -18,26 +18,26 @@ Future<String> initHTTP(UserHTTP inputHTTP, String user, String pw) async {
 
   try {
     // Requests 1 & 2 verifies internet is solid.
-    print("REQUEST #1: RETRIEVING PHPSESSID");
+    // print("REQUEST #1: RETRIEVING PHPSESSID");
     var response = await http.post(
       Uri.parse(inputHTTP.baseURL),
       body: inputHTTP.data,
       headers: inputHTTP.headers,
     );
     inputHTTP.headers['Cookie'] = response.headers['set-cookie']!.split(';')[0];
-    print(inputHTTP.headers['Cookie']);
+    // print(inputHTTP.headers['Cookie']);
 
-    print("REQUEST #2: RETRIEVING CSRF");
+    // print("REQUEST #2: RETRIEVING CSRF");
     response = await http.post(
       Uri.parse(inputHTTP.baseURL),
       body: inputHTTP.data,
       headers: inputHTTP.headers,
     );
     inputHTTP.data['__csrf_magic'] = BeautifulSoup(response.body).find('input')!['value']!;
-    print(inputHTTP.data['__csrf_magic']);
+    // print(inputHTTP.data['__csrf_magic']);
 
     // Request 3 verifies credentials are solid.
-    print("REQUEST 3: VALIDATING LOGIN");
+    // print("REQUEST 3: VALIDATING LOGIN");
     response = await http.post(
       Uri.parse(inputHTTP.baseURL),
       body: inputHTTP.data,

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../Internal/APOM_Objects.dart';
 import '../../Internal/AboutApp_Constants.dart';
 import 'package:sizer/sizer.dart';
@@ -33,12 +34,11 @@ class PrivacyPage extends StatelessWidget {
               margin: EdgeInsets.only(left: 10),
               padding: EdgeInsets.symmetric(vertical: 5),
               child: Text(
-                  "Alpha Phi Omega Mobile operates by using users’ input "
-                  "Emails and Passwords to authenticate to www.apoon.org via HTTP.\n\n"
+                  "Alpha Phi Omega Mobile operates by authenticating users to www.apoonline.org\n\n"
                   "After login is validated, data involving users’ profile info, "
                   "requirements, and upcoming events is scrapped for display. \n\n"
                   "None of this data is stored externally in third party databases. "
-                  "It solely exists on www.apoon.org.",
+                  "It solely exists on www.apoonline.org.",
                   style: GoogleFonts.carroisGothic(fontSize: 16))),
           Container(
             padding: EdgeInsets.only(top: 15, bottom: 5),
@@ -94,7 +94,8 @@ class ChangelogPage extends StatelessWidget {
                     text: TextSpan(
                         text: "V. ${entry.version}",
                         style: GoogleFonts.carroisGothic(
-                            fontSize: 24, color: Colors.black),
+                            fontSize: 24,
+                            color: Theme.of(context).colorScheme.secondary),
                         children: [
                       TextSpan(
                           text:
@@ -181,7 +182,6 @@ class InfoPage extends StatelessWidget {
               child: Text(
                 "V. $version\n"
                 "Powered by Flutter\n"
-                "Network requests from www.apoon.org\n"
                 "Developed by Anthony Norderhaug\n"
                 "Fall 2021 Alpha Gamma Class",
                 textAlign: TextAlign.center,
@@ -189,20 +189,15 @@ class InfoPage extends StatelessWidget {
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(vertical: 15),
-              child: Text(
-                "Alpha Phi Omega Mobile is in no way affiliated with, "
-                "nor endorsed by, Alpha Phi Omega, National Service Fraternity.",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.carroisGothic(
-                    fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Container(
-              alignment: Alignment.center,
+                alignment: Alignment.center,
                 padding: EdgeInsets.symmetric(vertical: 15),
                 child: InkWell(
-                  onTap: () {},
+                  onTap: () async {
+                    if (!await launchUrl(Uri.parse(helpEmail),
+                        mode: LaunchMode.externalApplication)) {
+                      throw 'Could not launch $helpEmail';
+                    }
+                  },
                   child: Text(
                     "Support/feedback email",
                     textAlign: TextAlign.center,
@@ -210,18 +205,6 @@ class InfoPage extends StatelessWidget {
                         fontSize: 14, color: Colors.blue),
                   ),
                 )),
-            Container(
-              alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(vertical: 15),
-                child: InkWell(
-                  onTap: () {},
-                  child: Text(
-                    "Give the app a review!",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.carroisGothic(
-                        fontSize: 14, color: Colors.blue),
-                  )),
-                )
           ],
         ));
   }

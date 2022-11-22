@@ -7,6 +7,11 @@
 ///
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'Data/Preferences.dart';
+import 'Internal/AppThemes.dart';
 import 'Login/Login.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:calendar_view/calendar_view.dart';
@@ -17,6 +22,7 @@ import 'Internal/AboutApp_Constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await UserPreferences.init();
 
   runApp(const MyApp());
 }
@@ -39,14 +45,21 @@ class MyApp extends StatelessWidget {
         child: MainUser(
           data: UserData(),
           // Sizer package
-          child: Sizer(builder: (context, orientation, deviceType) {
-            return MaterialApp(
-              title: 'Flutter Demo',
-              theme: ThemeData(
-                  primarySwatch: Colors.blue,
-                  textTheme: GoogleFonts.dmSerifDisplayTextTheme()),
-              home: LoginBody(), // Login.dart
-            );
+          child: Sizer(builder: (sizerContext, orientation, deviceType) {
+            return ChangeNotifierProvider(
+              create: (createContext) => ThemeProvider(),
+              builder:(buildContext, __) {
+                final themeProvider = Provider.of<ThemeProvider>(buildContext);
+
+                return MaterialApp(
+                  debugShowCheckedModeBanner: false,
+                  color: Colors.blue,
+                  themeMode: themeProvider.themeMode,
+                  theme: MyThemes.lightTheme,
+                  darkTheme: MyThemes.darkTheme,
+                  home: LoginBody(), // Login.dart
+                );
+              });
           }),
         ),
       ),

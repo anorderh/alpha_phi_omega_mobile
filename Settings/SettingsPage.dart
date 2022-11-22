@@ -33,8 +33,7 @@ class SettingsPage extends StatelessWidget {
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          icon: const Icon(FontAwesomeIcons.rotateLeft,
-                              color: Colors.black)),
+                          icon: const Icon(FontAwesomeIcons.rotateLeft,)),
                     ),
                     Container(
                       alignment: Alignment.bottomCenter,

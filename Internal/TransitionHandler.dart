@@ -34,12 +34,12 @@ Route getSlideTransition(Widget page, String direction) {
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         var slideTween = Tween(
             begin: Offset(direction == "right" ? -1 : 1, 0),
-            end: Offset.zero)
-            .chain(CurveTween(curve: Curves.easeOutCubic));
+            end: Offset.zero).chain(CurveTween(curve: Curves.ease));
 
-        return SlideTransition(
-          position: animation.drive(slideTween),
-          child: child,
+            return SlideTransition(
+            position: animation.drive(slideTween),
+            child: child
+        ,
         );
       });
 }
@@ -60,11 +60,10 @@ Route getFadeTransition(Widget page) {
       });
 }
 
-void pushToNew(
-    {required BuildContext context,
-      required bool withNavBar,
-      required Widget page,
-      required String transition}) {
+void pushToNew({required BuildContext context,
+  required bool withNavBar,
+  required Widget page,
+  required String transition}) {
   if (transition == "scale") {
     Navigator.of(context, rootNavigator: !withNavBar)
         .push(getScaleTransition(page));

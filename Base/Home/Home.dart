@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:example/Data/Preferences.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -21,6 +22,7 @@ import 'Home_Loading.dart';
 import 'package:sizer/sizer.dart';
 import 'package:expandable_page_view/expandable_page_view.dart';
 import '../../Internal/ErrorHandler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // HOME WIDGET
 class Home extends StatefulWidget {
@@ -34,24 +36,19 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with TickerProviderStateMixin {
+class _HomeState extends State<Home> {
   late Future<List<String>> activeContent;
-  late PageController pageController;
-  late TabController tabController;
 
   @override
   void initState() {
     activeContent = widget.content;
+
     super.initState();
   }
 
   @override
   void didChangeDependencies() {
     // Creating new controllers per navBar transition. Indexes are incorrect if not
-    pageController = PageController(initialPage: widget.maintenance.homeIndex);
-    tabController = TabController(
-        initialIndex: widget.maintenance.homeIndex, length: 2, vsync: this);
-
     widget.maintenance.setRefresh(_refreshContent);
 
     super.didChangeDependencies();
@@ -62,8 +59,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {
           activeContent =
               scrapeUserContent(MainUser.of(context).data, ignore: true);
-          pageController =
-              PageController(initialPage: widget.maintenance.homeIndex);
         }));
   }
 
@@ -73,8 +68,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       setState(() {
         activeContent =
             scrapeUserContent(MainUser.of(context).data, ignore: false);
-        pageController =
-            PageController(initialPage: widget.maintenance.homeIndex);
       });
     });
   }
@@ -152,7 +145,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                       ],
                     );
                   } else {
-                    if (snapshot.hasData) { // If data not null.
+                    if (snapshot.hasData) {
+                      // If data not null.
                       // Confirming all data pulled in activeContent is valid.
                       for (String res in snapshot.data!) {
                         if (res != "Success") {
@@ -181,10 +175,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                 ),
                               ),
                             ),
-                            UserContent(
-                              pageC: pageController,
-                              tabC: tabController,
-                            )
+                            UserContent()
                           ]);
                     } else {
                       // Data is null, app reloaded incorrectly
@@ -197,7 +188,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 }
 
 class CheckSettingsButton extends StatelessWidget {
-  const CheckSettingsButton({Key? key}) : super(key: key);
+  CheckSettingsButton({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -213,7 +204,8 @@ class CheckSettingsButton extends StatelessWidget {
                   page: Settings(),
                   transition: "scale");
             },
-            icon: const Icon(FontAwesomeIcons.bars, color: Colors.black)),
+            icon: Icon(FontAwesomeIcons.bars,
+                color: Theme.of(context).iconTheme.color)),
       ),
     );
   }
@@ -302,9 +294,17 @@ class HomeTabBar extends StatefulWidget {
 }
 
 class _HomeTabBarState extends State<HomeTabBar> {
+  late ThemeData theme;
+
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    theme = Theme.of(context);
+    super.didChangeDependencies();
   }
 
   @override
@@ -319,11 +319,13 @@ class _HomeTabBarState extends State<HomeTabBar> {
         child: TabBar(
           padding: EdgeInsets.all(6),
           unselectedLabelColor: Colors.grey,
-          labelColor: Colors.black,
+          labelColor: theme.colorScheme.secondary,
           indicatorColor: Colors.white,
           indicatorWeight: 2,
           indicator: BoxDecoration(
-              color: Colors.white,
+              color: theme.primaryColor == Colors.white
+                  ? Colors.white
+                  : Colors.blue,
               borderRadius: BorderRadius.all(Radius.circular(25)),
               boxShadow: [
                 BoxShadow(
@@ -350,45 +352,44 @@ class _HomeTabBarState extends State<HomeTabBar> {
 }
 
 class UserContent extends StatefulWidget {
-  final PageController pageC;
-  final TabController tabC;
-
-  const UserContent({Key? key, required this.pageC, required this.tabC})
-      : super(key: key);
+  const UserContent({Key? key}) : super(key: key);
 
   @override
   _UserContentState createState() => _UserContentState();
 }
 
-class _UserContentState extends State<UserContent> {
+class _UserContentState extends State<UserContent>
+    with SingleTickerProviderStateMixin {
   late UserData user;
-  late Maintenance maintenance;
+  late PageController pageC;
+  late TabController tabC;
+  SharedPreferences prefs = UserPreferences.prefs;
 
   @override
   void initState() {
+    pageC = PageController(initialPage: prefs.getInt('homeIndex') ?? 0);
+    tabC = TabController(
+        initialIndex: prefs.getInt('homeIndex') ?? 0, length: 2, vsync: this);
     super.initState();
   }
 
   @override
   void didChangeDependencies() {
     user = MainUser.of(context).data;
-    maintenance = MainApp.of(context).maintenance;
     super.didChangeDependencies();
   }
 
-  void setIndex(int newIndex, String input) {
+  void setIndex(int newIndex, String input) async {
+    await prefs.setInt('homeIndex', newIndex);
+
     // Check if call came from "page" or "tab". To synch controllers' indices.
     if (input == "page") {
-      widget.tabC.animateTo(newIndex,
+      tabC.animateTo(newIndex,
           duration: Duration(milliseconds: 250), curve: Curves.ease);
     } else {
-      widget.pageC.animateToPage(newIndex,
+      pageC.animateToPage(newIndex,
           duration: Duration(milliseconds: 250), curve: Curves.ease);
     }
-
-    setState(() {
-      maintenance.setIndex(newIndex);
-    });
   }
 
   @override
@@ -396,16 +397,14 @@ class _UserContentState extends State<UserContent> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        HomeTabBar(widget.tabC, setIndex),
+        HomeTabBar(tabC, setIndex),
         ExpandablePageView(
           onPageChanged: (pageIndex) {
-            if (!widget.tabC.indexIsChanging) {
-              setState(() {
-                setIndex(pageIndex, "page");
-              });
-            }
+            setState(() {
+              setIndex(pageIndex, "page");
+            });
           },
-          controller: widget.pageC,
+          controller: pageC,
           children: [
             UserReqs(reqs: user.reqs),
             UserEvents(events: user.upcomingEvents)
@@ -427,8 +426,10 @@ class UserReqs extends StatefulWidget {
 
 class _UserReqsState extends State<UserReqs> {
   late double reqListHeight;
-  int reqTileHeight = 200; //pixels
+  double reqTileHeight = 50.w; //pixels
   late List<String> reqKeys;
+
+  late bool isDark;
 
   @override
   void initState() {
@@ -437,13 +438,19 @@ class _UserReqsState extends State<UserReqs> {
     super.initState();
   }
 
+  @override
+  void didChangeDependencies() {
+    isDark = Theme.of(context).primaryColor != Colors.white;
+    super.didChangeDependencies();
+  }
+
   dynamic discernDouble(double input) {
     return input % 1 == 0 ? input.toInt() : input;
   }
 
   void calcReqListHeight() {
     double temp =
-        ((reqKeys.length / 2) + (reqKeys.length % 2)) * (reqTileHeight) * 1.0;
+        ((reqKeys.length / 2) + (reqKeys.length % 2)) * (reqTileHeight * 0.88);
 
     if (temp < 50.h) {
       reqListHeight = 50.h;
@@ -507,7 +514,7 @@ class _UserReqsState extends State<UserReqs> {
                     height: reqTileHeight * 1.0,
                     decoration: BoxDecoration(
                         color: HSLColor.fromColor(curInfo.color)
-                            .withLightness(0.9)
+                            .withLightness(isDark ? 0.4 : 0.9)
                             .toColor(),
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                         border: Border.all(
@@ -526,7 +533,7 @@ class _UserReqsState extends State<UserReqs> {
                           child: Icon(curInfo.icon,
                               size: 75,
                               color: HSLColor.fromColor(curInfo.color)
-                                  .withLightness(0.6)
+                                  .withLightness(isDark ? 0.8 : 0.6)
                                   .toColor()),
                           width: 90,
                         ),
@@ -567,7 +574,15 @@ class _UserReqsState extends State<UserReqs> {
                                                       GoogleFonts.carroisGothic(
                                                           fontSize:
                                                               credFontSize,
-                                                          color: Colors.black87,
+                                                          color: HSLColor
+                                                                  .fromColor(
+                                                                      curInfo
+                                                                          .color)
+                                                              .withLightness(
+                                                                  isDark
+                                                                      ? 0.9
+                                                                      : 0.3)
+                                                              .toColor(),
                                                           height: 0.4),
                                                   children: [
                                                     TextSpan(
@@ -578,16 +593,32 @@ class _UserReqsState extends State<UserReqs> {
                                                                 .toString(),
                                                         style: TextStyle(
                                                             fontSize: 30,
-                                                            height: 0.4))
+                                                            height: 0.4,
+                                                            color: HSLColor
+                                                                    .fromColor(
+                                                                        curInfo
+                                                                            .color)
+                                                                .withLightness(
+                                                                    isDark
+                                                                        ? 0.9
+                                                                        : 0.3)
+                                                                .toColor()))
                                                   ]),
                                             ),
-                                            Text("CREDITS",
+                                            Text("Credits",
                                                 style:
                                                     GoogleFonts.carroisGothic(
-                                                        fontSize: 14,
-                                                        letterSpacing: -0.25,
-                                                        fontWeight:
-                                                            FontWeight.bold))
+                                                        color:
+                                                            HSLColor.fromColor(
+                                                                    curInfo
+                                                                        .color)
+                                                                .withLightness(
+                                                                    isDark
+                                                                        ? 0.9
+                                                                        : 0.3)
+                                                                .toColor(),
+                                                        letterSpacing: -1.2,
+                                                        height: 1.2))
                                           ],
                                         ),
                                       ),
@@ -601,13 +632,15 @@ class _UserReqsState extends State<UserReqs> {
                               alignment: Alignment.center,
                               child: FittedBox(
                                 fit: BoxFit.fitWidth,
-                                child: Text(
-                                    reqKeys[index].toString().toUpperCase(),
+                                child: Text(reqKeys[index].toString(),
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.carroisGothic(
+                                      color: HSLColor.fromColor(curInfo.color)
+                                          .withLightness(isDark ? 0.9 : 0.3)
+                                          .toColor(),
+                                      letterSpacing: -1.2,
+                                      height: 1.2,
                                       fontSize: 24,
-                                      letterSpacing: -1,
-                                      fontWeight: FontWeight.w500,
                                     )),
                               ),
                             ),
@@ -637,6 +670,8 @@ class _UserEventsState extends State<UserEvents> {
   int? splitIndex;
   int eventTileHeight = 75;
 
+  late ThemeData theme;
+
   @override
   void initState() {
     calcEventListHeight();
@@ -645,6 +680,7 @@ class _UserEventsState extends State<UserEvents> {
 
   @override
   void didChangeDependencies() {
+    theme = Theme.of(context);
     DateTime start =
         getNextWeekStart(MainApp.of(context).mainCalendar.activeDate);
 
@@ -709,13 +745,16 @@ class _UserEventsState extends State<UserEvents> {
                 ? Container()
                 : UserEventList(
                     label: "This week",
-                    events: widget.events.sublist(0, splitIndex)),
+                    events: widget.events.sublist(0, splitIndex),
+                    theme: theme),
             splitIndex == null // If null, no events next week
                 ? Container()
                 : UserEventList(
                     label: "Later",
                     events: widget.events
-                        .sublist(splitIndex!, widget.events.length))
+                        .sublist(splitIndex!, widget.events.length),
+                    theme: theme,
+                  )
           ],
         ),
       );
@@ -726,20 +765,27 @@ class _UserEventsState extends State<UserEvents> {
 class UserEventList extends StatelessWidget {
   final String label;
   final List<EventFull> events;
+  final ThemeData theme;
   double eventTileHeight = 75;
 
-  UserEventList({required this.label, required this.events, Key? key})
+  UserEventList(
+      {required this.label,
+      required this.events,
+      Key? key,
+      required this.theme})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    bool isLight = theme.primaryColor == Colors.white;
+
     return Container(
       padding: EdgeInsets.only(top: 5, bottom: 5),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
             child: Text(label,
                 style: GoogleFonts.dmSerifDisplay(
-                  color: Colors.black,
+                  color: theme.colorScheme.secondary,
                   fontSize: 16,
                 )),
             padding: EdgeInsets.only(left: 15, right: 15)),
@@ -760,7 +806,7 @@ class UserEventList extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.all(Radius.circular(15)),
                   splashColor: HSLColor.fromColor(info.color)
-                      .withLightness(0.6)
+                      .withLightness(isLight ? 0.6 : 0.3)
                       .toColor(),
                   child: Ink(
                     width: 100.w,
@@ -768,12 +814,13 @@ class UserEventList extends StatelessWidget {
                     decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 3)
+                              offset: Offset(1, 1),
+                              color: Colors.grey.shade900.withOpacity(0.3),
+                              blurRadius: 5)
                         ],
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                         color: HSLColor.fromColor(info.color)
-                            .withLightness(0.9)
+                            .withLightness(isLight ? 0.9 : 0.4)
                             .toColor()),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -786,7 +833,7 @@ class UserEventList extends StatelessWidget {
                               child: Icon(info.icon,
                                   size: 30,
                                   color: HSLColor.fromColor(info.color)
-                                      .withLightness(0.6)
+                                      .withLightness(isLight ? 0.6 : 0.8)
                                       .toColor()),
                             )),
                         Flexible(
@@ -797,7 +844,6 @@ class UserEventList extends StatelessWidget {
                               // color: Colors.white,
                               child: Text(event.title,
                                   style: GoogleFonts.carroisGothic(
-                                      color: Colors.black,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold),
                                   maxLines: 2,
@@ -808,19 +854,13 @@ class UserEventList extends StatelessWidget {
                           fit: FlexFit.tight,
                           flex: 2,
                           child: hasTimes
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                        DateFormat.jm().format(event.start!) +
-                                            " to",
-                                        style: GoogleFonts.carroisGothic(
-                                            fontWeight: FontWeight.bold)),
-                                    Text(DateFormat.jm().format(event.end!),
-                                        style: GoogleFonts.carroisGothic(
-                                            fontWeight: FontWeight.bold))
-                                  ],
-                                )
+                              ? Text(
+                                  DateFormat.jm().format(event.start!) +
+                                      " to\n" +
+                                      DateFormat.jm().format(event.end!),
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.carroisGothic(
+                                      fontWeight: FontWeight.bold))
                               : Container(
                                   alignment: Alignment.center,
                                   child: Text(

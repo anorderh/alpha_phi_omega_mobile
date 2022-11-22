@@ -3,10 +3,13 @@
 ///
 
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:example/Data/Preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../Internal/APOM_Constants.dart';
 import '../Data/AppData.dart';
 import '../Base/Base.dart';
@@ -28,6 +31,8 @@ class _LoginBodyState extends State<LoginBody> {
   final userController = TextEditingController();
   final pwController = TextEditingController();
   late UserData user;
+  late ThemeData theme;
+  SharedPreferences prefs = UserPreferences.prefs;
 
   bool isLoading = false;
   bool timeout = false;
@@ -35,6 +40,7 @@ class _LoginBodyState extends State<LoginBody> {
   late Future<bool> setFields;
 
   String chapter = chapterLibrary.keys.toList()[0];
+  late double OSpadding;
 
   @override
   void initState() {
@@ -53,6 +59,13 @@ class _LoginBodyState extends State<LoginBody> {
 
   @override
   void didChangeDependencies() {
+    theme = Theme.of(context);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+        statusBarBrightness: theme.brightness
+    ));
+
+    OSpadding = MediaQuery.of(context).viewPadding.vertical;
+
     user = MainUser.of(context).data;
     super.didChangeDependencies();
   }
@@ -123,8 +136,10 @@ class _LoginBodyState extends State<LoginBody> {
 
   @override
   Widget build(BuildContext context) {
+    bool isLight = theme.primaryColor == Colors.white;
+
     return Scaffold(
-        backgroundColor: Color.fromRGBO(240, 252, 255, 1),
+      backgroundColor: isLight ? Color.fromRGBO(239, 252, 255, 1) : theme.primaryColor,
         body: ScrollConfiguration(
             behavior: const ScrollBehavior().copyWith(overscroll: false),
             child: FutureBuilder<bool>(
@@ -147,9 +162,9 @@ class _LoginBodyState extends State<LoginBody> {
                           child: Container(
                             alignment: Alignment.center,
                             // ENTIRE SCREEN
-                            height: 90.h,
+                            height: 100.h - OSpadding,
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               // CONTENTS
                               children: [
                                 Container(
@@ -168,6 +183,8 @@ class _LoginBodyState extends State<LoginBody> {
                                             child: FittedBox(
                                               fit: BoxFit.scaleDown,
                                               child: DropdownButton2(
+                                                buttonDecoration: BoxDecoration(
+                                                    color: Colors.transparent),
                                                 buttonWidth: 65,
                                                 iconSize: 20,
                                                 dropdownOverButton: true,
@@ -197,7 +214,7 @@ class _LoginBodyState extends State<LoginBody> {
                                                           .withOpacity(0.15),
                                                       blurRadius: 3)
                                                 ],
-                                                color: Colors.white,
+                                                color: theme.primaryColor,
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
                                                     width: 2,
@@ -225,7 +242,7 @@ class _LoginBodyState extends State<LoginBody> {
                                                             .withOpacity(0.15),
                                                         blurRadius: 3)
                                                   ],
-                                                  color: Colors.white,
+                                                  color: theme.primaryColor,
                                                   shape: BoxShape.circle,
                                                   border: Border.all(
                                                       width: 2,
@@ -234,9 +251,7 @@ class _LoginBodyState extends State<LoginBody> {
                                                 child: Icon(
                                                     FontAwesomeIcons
                                                         .fileCircleQuestion,
-                                                    size: 7.w,
-                                                    color: Colors.black
-                                                        .withOpacity(0.35)),
+                                                    size: 7.w, color: Colors.grey),
                                                 width: 16.w,
                                                 height: 16.w,
                                               ),
@@ -257,8 +272,9 @@ class _LoginBodyState extends State<LoginBody> {
                                                       padding:
                                                           EdgeInsets.fromLTRB(
                                                               25, 25, 25, 10),
-                                                      child: Image.asset(
-                                                          'assets/APOLogoFinal.png')),
+                                                      child: Image.asset(isLight
+                                                          ? 'assets/APOLogoFinal.png'
+                                                          : 'assets/APOLogoWhite.png')),
                                                   height: 70.w,
                                                   width: 70.w,
                                                   decoration: BoxDecoration(
@@ -269,7 +285,7 @@ class _LoginBodyState extends State<LoginBody> {
                                                                     0.15),
                                                             blurRadius: 3)
                                                       ],
-                                                      color: Colors.white,
+                                                      color: theme.primaryColor,
                                                       shape: BoxShape.circle,
                                                       border: Border.all(
                                                           width: 2,
@@ -417,7 +433,7 @@ class _LoginBodyState extends State<LoginBody> {
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
-                                                                fontSize: 36)),
+                                                                fontSize: 36, color: Colors.white)),
                                               )),
                                             ),
                                             onPressed: isLoading
@@ -428,7 +444,9 @@ class _LoginBodyState extends State<LoginBody> {
                                                     // Checking valid login...
                                                     if (user
                                                         .http.validConnection) {
-                                                      // Unlocked!
+                                                      // Unlocked! Reset home index.
+                                                      await prefs.setInt(("homeIndex"), 0);
+
                                                       pushToNew(
                                                           context: context,
                                                           withNavBar: true,
@@ -440,8 +458,7 @@ class _LoginBodyState extends State<LoginBody> {
                                                             maintenance:
                                                                 Maintenance(),
                                                             child: Base(
-                                                              user: user,
-                                                            ),
+                                                                user: user),
                                                           ),
                                                           transition: "scale");
                                                     } else {
@@ -453,9 +470,6 @@ class _LoginBodyState extends State<LoginBody> {
                                                           builder:
                                                               (context) =>
                                                                   AlertDialog(
-                                                                    backgroundColor:
-                                                                        Colors.lightBlue[
-                                                                            50],
                                                                     shape: RoundedRectangleBorder(
                                                                         borderRadius:
                                                                             BorderRadius.all(Radius.circular(15.0))),

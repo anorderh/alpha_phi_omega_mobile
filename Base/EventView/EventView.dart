@@ -32,10 +32,12 @@ class _EventViewState extends State<EventView> {
   late Future<List<dynamic>> participantScrape;
   bool eventsModified = false;
   late Map httpTags;
+  late ThemeData theme;
 
   @override
   void didChangeDependencies() {
-    print("changed participants");
+    theme = Theme.of(context);
+
     httpTags = MainUser.of(context).data.http.getHTTPTags();
     participantScrape = getParticipants(httpTags, widget.event.link);
     MainApp.of(context).maintenance.setBuildContext(context);
@@ -65,11 +67,12 @@ class _EventViewState extends State<EventView> {
 
   @override
   Widget build(BuildContext context) {
-    print("rebuilt scaffold");
+    bool isDark = theme.primaryColor != Colors.white;
 
     return Scaffold(
-        backgroundColor:
-            HSLColor.fromColor(widget.info.color).withLightness(0.9).toColor(),
+        backgroundColor: HSLColor.fromColor(widget.info.color)
+            .withLightness(isDark ? 0.4 : 0.9)
+            .toColor(),
         body: ScrollConfiguration(
             behavior: const ScrollBehavior().copyWith(overscroll: false),
             child: ListView(
@@ -90,9 +93,9 @@ class _EventViewState extends State<EventView> {
                             child: Icon(widget.info.icon,
                                 size: 190,
                                 color: HSLColor.fromColor(widget.info.color)
-                                    .withLightness(0.6)
+                                    .withLightness(isDark ? 1.0 : 0.6)
                                     .toColor()
-                                    .withOpacity(0.3)),
+                                    .withOpacity(isDark ? 0.4 : 0.3)),
                           ),
                           Container(
                             padding: EdgeInsets.only(left: 12),
@@ -102,7 +105,7 @@ class _EventViewState extends State<EventView> {
                               style: TextStyle(
                                   fontSize: 36,
                                   color: HSLColor.fromColor(widget.info.color)
-                                      .withLightness(0.3)
+                                      .withLightness(isDark ? 0.9 : 0.3)
                                       .toColor()),
                               textAlign: TextAlign.left,
                               overflow: TextOverflow.ellipsis,
@@ -119,8 +122,7 @@ class _EventViewState extends State<EventView> {
                                       .setBuildContext(null);
                                   Navigator.of(context).pop();
                                 },
-                                icon: const Icon(FontAwesomeIcons.rotateLeft,
-                                    color: Colors.black)),
+                                icon: const Icon(FontAwesomeIcons.rotateLeft)),
                           )
                         ],
                       ),
@@ -130,7 +132,7 @@ class _EventViewState extends State<EventView> {
                       width: 100.w,
                       padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: theme.primaryColor,
                           borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(25),
                               topRight: Radius.circular(25))),
@@ -149,14 +151,16 @@ class _EventViewState extends State<EventView> {
                                     scrape: participantScrape,
                                     event: widget.event,
                                     update: updateParticipants,
-                                    refresh: refreshParticipants),
+                                    refresh: refreshParticipants,
+                                    isDark: isDark),
                               )
                             ],
                           ),
                           EventInfo(
                               bubbleColor: widget.info.color,
-                              event: widget.event),
-                          ParticipantList(scrape: participantScrape)
+                              event: widget.event,
+                              isLight: theme.primaryColor == Colors.white),
+                          ParticipantList(scrape: participantScrape),
                         ],
                       ))
                 ])));
@@ -208,13 +212,15 @@ class EventButtons extends StatefulWidget {
   final EventFull event;
   final Function update;
   final Function refresh;
+  final bool isDark;
 
   const EventButtons(
       {Key? key,
       required this.scrape,
       required this.event,
       required this.update,
-      required this.refresh})
+      required this.refresh,
+      required this.isDark})
       : super(key: key);
 
   @override
@@ -227,7 +233,7 @@ class _EventButtonsState extends State<EventButtons> {
     return Container(
       padding: EdgeInsets.all(5),
       decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: widget.isDark ? Colors.grey.shade800 : Colors.grey.shade200,
           borderRadius: BorderRadius.all(Radius.circular(10))),
       child: Column(
         children: [
@@ -311,7 +317,6 @@ class SignupButton extends StatefulWidget {
 }
 
 class _SignupButtonState extends State<SignupButton> {
-
   // Varies based on...
   // 1) if Event is locked/closed and 2) if User has joined or not
   EventButton getButton(int shiftID, int shifts) {
@@ -427,7 +432,8 @@ class _SignupButtonState extends State<SignupButton> {
               size: widget.size,
             );
           } else {
-            if (snapshot.hasData) { // Data is not null
+            if (snapshot.hasData) {
+              // Data is not null
               if (snapshot.data!.length != 1) {
                 return getButton(
                     snapshot.data![0], snapshot.data![1].keys.length);
@@ -460,8 +466,8 @@ class CalendarButton extends StatelessWidget {
 
   // Google Calendar URL with event data.
   String retrieveURL() {
-    String url = 'https://calendar.google.com/calendar/u/0/r/eventedit?' +
-        'text=${event.title.replaceAll(" ", "+")}';
+    String url = 'https://www.google.com/calendar/event?action=TEMPLATE' +
+        '&text=${event.title.replaceAll(" ", "+")}';
 
     String dateText;
     if (event.start == null) {
@@ -475,6 +481,7 @@ class CalendarButton extends StatelessWidget {
 
     url += '&details=${encodeText(event.desc)}';
     url += '&location=${encodeText(event.loc)}';
+    url += '&trp=true&sprop=&sprop=name:';
 
     return url;
   }
@@ -514,10 +521,15 @@ class CalendarButton extends StatelessWidget {
 }
 
 class EventInfo extends StatelessWidget {
+  final bool isLight;
   final EventFull event;
   final Color bubbleColor;
 
-  const EventInfo({Key? key, required this.bubbleColor, required this.event})
+  const EventInfo(
+      {Key? key,
+      required this.bubbleColor,
+      required this.event,
+      required this.isLight})
       : super(key: key);
 
   String deriveEventDuration() {
@@ -583,7 +595,8 @@ class EventInfo extends StatelessWidget {
                 size: 20.0,
               ),
               text: event.loc,
-              color: bubbleColor),
+              color: bubbleColor,
+              isLight: isLight),
           InfoPanel(
               icon: Icon(
                 FontAwesomeIcons.calendarDays,
@@ -591,7 +604,8 @@ class EventInfo extends StatelessWidget {
                 size: 20,
               ),
               text: deriveEventDuration(),
-              color: bubbleColor),
+              color: bubbleColor,
+              isLight: isLight),
           InfoPanel(
               icon: Icon(
                 FontAwesomeIcons.solidStar,
@@ -599,7 +613,8 @@ class EventInfo extends StatelessWidget {
                 size: 20,
               ),
               text: event.cred,
-              color: bubbleColor),
+              color: bubbleColor,
+              isLight: isLight),
           InfoPanel(
               icon: Icon(
                 FontAwesomeIcons.userLarge,
@@ -607,7 +622,8 @@ class EventInfo extends StatelessWidget {
                 size: 18,
               ),
               text: event.creator,
-              color: bubbleColor),
+              color: bubbleColor,
+              isLight: isLight),
           InfoPanel(
               icon: Icon(
                 FontAwesomeIcons.lock,
@@ -615,7 +631,8 @@ class EventInfo extends StatelessWidget {
                 size: 18,
               ),
               text: lockInfo(event.lock) + "\n" + closeInfo(event.close),
-              color: bubbleColor)
+              color: bubbleColor,
+              isLight: isLight)
         ],
       ),
     );
@@ -626,9 +643,14 @@ class InfoPanel extends StatelessWidget {
   final Icon icon;
   final String text;
   final Color color;
+  final bool isLight;
 
   const InfoPanel(
-      {Key? key, required this.icon, required this.text, required this.color})
+      {Key? key,
+      required this.icon,
+      required this.text,
+      required this.color,
+      required this.isLight})
       : super(key: key);
 
   @override
@@ -645,12 +667,14 @@ class InfoPanel extends StatelessWidget {
               height: 40,
               child: icon,
               decoration: BoxDecoration(
-                  color: HSLColor.fromColor(color).withLightness(0.9).toColor(),
+                  color: HSLColor.fromColor(color)
+                      .withLightness(isLight ? 0.9 : 0.3)
+                      .toColor(),
                   shape: BoxShape.circle,
                   border: Border.all(
                       width: 2,
                       color: HSLColor.fromColor(color)
-                          .withLightness(0.3)
+                          .withLightness(isLight ? 0.3 : 0.9)
                           .toColor())),
             ),
           ),
@@ -660,10 +684,8 @@ class InfoPanel extends StatelessWidget {
                 alignment: Alignment.center,
                 child: SelectableText(text,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold))),
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
           )
         ],
       ),
@@ -701,7 +723,7 @@ class _ParticipantListState extends State<ParticipantList> {
               Container(
                 padding: EdgeInsets.all(2),
                 child: Text(participant.canDrive.toString(),
-                    style: TextStyle(fontSize: 18)),
+                    style: TextStyle(fontSize: 18, color: Colors.black)),
               )
             ],
           ));
@@ -776,6 +798,7 @@ class _ParticipantListState extends State<ParticipantList> {
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
+                color: Colors.black,
                 fontStyle: FontStyle.italic),
           ),
           decoration: BoxDecoration(
@@ -843,16 +866,18 @@ class _ParticipantListState extends State<ParticipantList> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(person.name,
-                        overflow: TextOverflow.ellipsis,
+                    SelectableText(person.name,
                         textAlign: TextAlign.left,
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text(person.number!,
-                        overflow: TextOverflow.ellipsis,
+                            overflow: TextOverflow.ellipsis,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black)),
+                    SelectableText(person.number!,
                         textAlign: TextAlign.left,
                         style: TextStyle(
                             fontSize: 12,
+                            overflow: TextOverflow.ellipsis,
                             fontWeight: FontWeight.bold,
                             color: Colors.black54))
                   ],
@@ -869,7 +894,10 @@ class _ParticipantListState extends State<ParticipantList> {
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black))
                 : Container(),
           ),
         )
@@ -883,7 +911,10 @@ class _ParticipantListState extends State<ParticipantList> {
       children: [
         Text("Waitlist",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black)),
         Container(
             padding: EdgeInsets.only(left: 15, right: 5),
             child: Icon(FontAwesomeIcons.triangleExclamation,
@@ -923,7 +954,8 @@ class _ParticipantListState extends State<ParticipantList> {
                 ),
               ),
             );
-          } else if (snapshot.hasData) { // Data is not null
+          } else if (snapshot.hasData) {
+            // Data is not null
             if (snapshot.data!.length != 1) {
               List<Widget> shifts = [];
               List<String> keys = snapshot.data![1].keys.toList();
@@ -1023,7 +1055,7 @@ class _JoinDialogState extends State<JoinDialog> {
       controller: controller,
       decoration: BoxDecoration(
           color: Colors.blue.shade100.withOpacity(0.5),
-          border: Border.all(width: 1, color: Colors.black)),
+          border: Border.all(width: 1)),
     );
   }
 
@@ -1204,7 +1236,10 @@ class _JoinDialogState extends State<JoinDialog> {
                                           .getHTTPTags(),
                                       MainUser.of(context).data.http.baseURL,
                                       widget.event.id,
-                                      controller.text,
+                                      MainUser.of(context).data.email ==
+                                              "apomfeedback@gmail.com"
+                                          ? "Demo comments blocked."
+                                          : controller.text,
                                       isDriving ? 1 : 0,
                                       canDrive.toInt(),
                                       curShift),
@@ -1276,7 +1311,6 @@ class _ResultDialogState extends State<ResultDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Colors.lightBlue[50],
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(15.0))),
       title: Text(
@@ -1335,12 +1369,15 @@ class _ResultDialogState extends State<ResultDialog> {
                             text: TextSpan(
                                 text: (title),
                                 style: GoogleFonts.dmSerifDisplay(
-                                    fontSize: 20, color: Colors.black),
+                                    fontSize: 20,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .secondary),
                                 children: [
                               TextSpan(
                                   text: content,
-                                  style: GoogleFonts.dmSerifDisplay(
-                                      fontSize: 16, color: Colors.black))
+                                  style:
+                                      GoogleFonts.dmSerifDisplay(fontSize: 16))
                             ])),
                         close
                       ],

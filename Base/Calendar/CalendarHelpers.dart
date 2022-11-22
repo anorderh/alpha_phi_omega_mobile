@@ -1,7 +1,6 @@
 ///
 /// Internal methods to help Calendar.dart
-
-import 'dart:html';
+///
 
 import 'package:calendar_view/calendar_view.dart';
 import 'package:intl/intl.dart';
@@ -53,6 +52,15 @@ List<DateTime> deriveTimes(String text) {
   return eventDates;
 }
 
+Map<String, List<EventFull>> getAllDayMap(List<DateTime> dates) {
+  Map<String, List<EventFull>> allDayEvents = {};
+
+  for (DateTime date in dates) {
+    allDayEvents['${date.month}.${date.day}'] = [];
+  }
+  return allDayEvents;
+}
+
 void clearController(EventController controller) {
   for (CalendarEventData event in controller.events) {
     controller.remove(event);
@@ -67,15 +75,6 @@ String deriveGreeting(DateTime date) {
   } else {
     return "Good Morning,";
   }
-}
-
-Map<String, List<EventFull>> getAllDayMap(List<DateTime> dates) {
-  Map<String, List<EventFull>> allDayEvents = {};
-
-  for (DateTime date in dates) {
-    allDayEvents['${date.month}.${date.day}'] = [];
-  }
-  return allDayEvents;
 }
 
 bool isEventAlreadyPresent(List<EventFull> list, String link) {

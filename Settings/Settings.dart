@@ -4,10 +4,13 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:sizer/sizer.dart';
 import '../Data/AppData.dart';
+import '../Internal/AppThemes.dart';
 import 'SettingsContents.dart';
 import 'SettingsPage.dart';
 import '../Internal/TransitionHandler.dart';
@@ -23,10 +26,13 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   late bool loadStatus;
   late UserData user;
+  late ThemeProvider theme;
 
   @override
   void didChangeDependencies() {
     user = MainUser.of(context).data;
+    theme = Provider.of<ThemeProvider>(context);
+
     loadStatus = checkLoad();
     super.didChangeDependencies();
   }
@@ -42,43 +48,62 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ScrollConfiguration(
-        behavior: const ScrollBehavior().copyWith(overscroll: false),
-        child: ListView(physics: ClampingScrollPhysics(),
-          children: [
-            Container(
-              padding: EdgeInsets.only(left: 10, top: 15),
-              alignment: Alignment.topLeft,
-              child: IconButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  icon: const Icon(FontAwesomeIcons.rotateLeft,
-                      color: Colors.black)),
-            ),
-            Container(
-                margin: EdgeInsets.only(bottom: 5.h),
-                alignment: Alignment.center,
-                child: loadStatus
-                    ? UserCard(user: user)
-                    : Text("User data did not finish loading.",
-                    style: TextStyle(fontSize: 24))),
-            Container(
-              alignment: Alignment.topCenter,
-              // color: Colors.red,
-              child: SettingsButtons(user: user),
-            ),
-            Container(
-              alignment: Alignment.center,
-              height: 80,
-              child: Text("Alpha Phi Omega Mobile",
-                  style:
-                  TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-            )
-          ],
-        )
-      )
-    );
+        body: ScrollConfiguration(
+            behavior: const ScrollBehavior().copyWith(overscroll: false),
+            child: ListView(
+              physics: ClampingScrollPhysics(),
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                        padding: EdgeInsets.only(left: 10, top: 15),
+                        child: IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: Icon(FontAwesomeIcons.rotateLeft))),
+                    Container(
+                        padding: EdgeInsets.only(right: 10, top: 15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(theme.isDarkMode ? FontAwesomeIcons.moon : Icons.sunny, size: 25,),
+                            Switch.adaptive(
+                            activeColor: Colors.blue,
+                            value: theme.isDarkMode,
+                            onChanged: (value) {
+                              theme.toggleDark(value);
+
+                              SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+                                  statusBarBrightness: value ? Brightness.light : Brightness.dark
+                              ));
+                            },
+                          )],
+                        ))
+                  ],
+                ),
+                Container(
+                    margin: EdgeInsets.only(bottom: 5.h),
+                    alignment: Alignment.center,
+                    child: loadStatus
+                        ? UserCard(user: user)
+                        : Text("User data did not finish loading.",
+                            style: TextStyle(fontSize: 24))),
+                Container(
+                  alignment: Alignment.topCenter,
+                  // color: Colors.red,
+                  child: SettingsButtons(user: user),
+                ),
+                Container(
+                  alignment: Alignment.center,
+                  height: 80,
+                  child: Text("Alpha Phi Omega Mobile",
+                      style:
+                          TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                )
+              ],
+            )));
   }
 }
 
@@ -134,12 +159,14 @@ class SettingsButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ThemeData theme = Theme.of(context);
+
     return Container(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Padding(
-              padding: EdgeInsets.only(left: 15, right: 15, bottom: 10),
+              padding: EdgeInsets.only(left: 20, right: 20, bottom: 10),
               child: InkWell(
                 onTap: () {
                   pushToNew(
@@ -154,23 +181,22 @@ class SettingsButtons extends StatelessWidget {
                   width: 100.w,
                   padding: EdgeInsets.only(top: 5, bottom: 5),
                   decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.canvasColor,
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                       boxShadow: [
                         BoxShadow(
-                            blurRadius: 5,
-                            color: Colors.black.withOpacity(0.15))
+                          offset: Offset(1, 1),
+                            color: Colors.grey.shade900.withOpacity(0.3),
+                            blurRadius: 5)
                       ]),
                   child: Align(
                     alignment: Alignment.center,
                     child: ListTile(
-                      leading: Icon(
-                        FontAwesomeIcons.personDigging,
-                        color: Colors.black,
-                      ),
+                      leading: Icon(FontAwesomeIcons.personDigging,
+                          color: theme.colorScheme.secondary),
                       title: Text(
                         "What is APO?",
-                        style: TextStyle(fontSize: 18, color: Colors.black),
+                        style: TextStyle(fontSize: 18),
                       ),
                       trailing: Icon(FontAwesomeIcons.angleRight),
                     ),
@@ -178,7 +204,7 @@ class SettingsButtons extends StatelessWidget {
                 ),
               )),
           Padding(
-              padding: EdgeInsets.only(left: 15, right: 15, bottom: 10),
+              padding: EdgeInsets.only(left: 20, right: 20, bottom: 10),
               child: InkWell(
                 onTap: () {
                   pushToNew(
@@ -193,23 +219,22 @@ class SettingsButtons extends StatelessWidget {
                   width: 100.w,
                   padding: EdgeInsets.only(top: 5, bottom: 5),
                   decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.canvasColor,
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                       boxShadow: [
                         BoxShadow(
-                            blurRadius: 5,
-                            color: Colors.black.withOpacity(0.15))
+                            offset: Offset(1, 1),
+                            color: Colors.grey.shade900.withOpacity(0.3),
+                            blurRadius: 5)
                       ]),
                   child: Align(
                     alignment: Alignment.center,
                     child: ListTile(
-                      leading: Icon(
-                        FontAwesomeIcons.penToSquare,
-                        color: Colors.black,
-                      ),
+                      leading: Icon(FontAwesomeIcons.penToSquare,
+                          color: theme.colorScheme.secondary),
                       title: Text(
                         "Features",
-                        style: TextStyle(fontSize: 18, color: Colors.black),
+                        style: TextStyle(fontSize: 18),
                       ),
                       trailing: Icon(FontAwesomeIcons.angleRight),
                     ),
@@ -217,7 +242,7 @@ class SettingsButtons extends StatelessWidget {
                 ),
               )),
           Padding(
-              padding: EdgeInsets.only(left: 15, right: 15, bottom: 10),
+              padding: EdgeInsets.only(left: 20, right: 20, bottom: 10),
               child: InkWell(
                 onTap: () {
                   pushToNew(
@@ -232,23 +257,22 @@ class SettingsButtons extends StatelessWidget {
                   width: 100.w,
                   padding: EdgeInsets.only(top: 5, bottom: 5),
                   decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.canvasColor,
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                       boxShadow: [
                         BoxShadow(
-                            blurRadius: 5,
-                            color: Colors.black.withOpacity(0.15))
+                            offset: Offset(1, 1),
+                            color: Colors.grey.shade900.withOpacity(0.3),
+                            blurRadius: 5)
                       ]),
                   child: Align(
                     alignment: Alignment.center,
                     child: ListTile(
-                      leading: Icon(
-                        FontAwesomeIcons.circleInfo,
-                        color: Colors.black,
-                      ),
+                      leading: Icon(FontAwesomeIcons.circleInfo,
+                          color: theme.colorScheme.secondary),
                       title: Text(
                         "About App",
-                        style: TextStyle(fontSize: 18, color: Colors.black),
+                        style: TextStyle(fontSize: 18),
                       ),
                       trailing: Icon(FontAwesomeIcons.angleRight),
                     ),
@@ -262,7 +286,7 @@ class SettingsButtons extends StatelessWidget {
             ),
           ),
           Padding(
-              padding: EdgeInsets.only(left: 15, right: 15, bottom: 10),
+              padding: EdgeInsets.only(left: 20, right: 20, bottom: 10),
               child: InkWell(
                 onTap: () {
                   Logout(context);
@@ -274,12 +298,13 @@ class SettingsButtons extends StatelessWidget {
                   width: 100.w,
                   padding: EdgeInsets.only(top: 5, bottom: 5),
                   decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.canvasColor,
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                       boxShadow: [
                         BoxShadow(
-                            blurRadius: 5,
-                            color: Colors.black.withOpacity(0.15))
+                            offset: Offset(1, 1),
+                            color: Colors.grey.shade900.withOpacity(0.3),
+                            blurRadius: 5)
                       ]),
                   child: Align(
                     alignment: Alignment.center,
@@ -298,7 +323,6 @@ class SettingsButtons extends StatelessWidget {
               ))
         ],
       ),
-
     );
   }
 }

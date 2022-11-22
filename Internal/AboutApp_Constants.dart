@@ -10,15 +10,16 @@ import 'APOM_Objects.dart';
 
 // SYSTEM INFO
 
-String version = "1.0";
-DateTime lastUpdated = DateTime(2022, 7, 13);
+String version = "1.0.4"; // When changing version, update in pubspec.yaml too.
+DateTime lastUpdated = DateTime(2022, 8, 6);
+String helpEmail = 'mailto:apomfeedback@gmail.com';
 
 // CHANGE LOG
 
 List<ChangelogEntry> changelog = [
   ChangelogEntry(
       version: "1.0",
-      updated: DateTime(2022, 7, 28),
+      updated: DateTime(2022, 8, 6),
       body: ["APOM's 1st release!"]),
 ];
 
@@ -38,5 +39,7 @@ List<String> packagesUsed = [
   "Shimmer",
   "Sizer",
   "Smooth Page Indicator",
-  "Flutter Secure Storage"
+  "Flutter Secure Storage",
+  "Shared Preferences",
+  "Provider"
 ];

@@ -2,6 +2,8 @@
 /// Calendar tab to view events on www.apoon.org
 ///
 
+import 'package:flutter/gestures.dart';
+
 import 'Calendar_HTTP.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +34,9 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
   late UserData user;
   late CalendarData mainCalendar;
 
+  late double pageWidth;
+  bool endingSwipe = false;
+
   late DateTime date;
   late List<DateTime> weeklyDates;
 
@@ -51,6 +56,8 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
         TabController(initialIndex: dayIndex, length: 7, vsync: this);
     _pageController = PageController(initialPage: dayIndex);
 
+    _pageController.addListener(_detectOverscroll);
+
     super.initState();
   }
 
@@ -68,27 +75,33 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
   }
 
   // Update date & controllers and if null, load day's events.
-  void setDay(int newDay, String indicator) {
-    date = date.add(Duration(days: newDay - dayIndex));
+  void setDay(DateTime newDate, String indicator, bool refresh) {
+    date = newDate;
+    int newIndex = newDate.weekday - 1;
 
     if (indicator == "page") {
-      _dayController.animateTo(newDay,
+      _dayController.animateTo(newIndex,
           duration: Duration(milliseconds: 200), curve: Curves.ease);
-    } else {
-      if ((dayIndex - newDay).abs() > 1) {
-        _pageController.jumpToPage(newDay);
+    } else if (indicator == "tab") {
+      if ((dayIndex - newIndex.abs() > 1)) {
+        _pageController.jumpToPage(newIndex);
       } else {
-        _pageController.animateToPage(newDay,
+        _pageController.animateToPage(newIndex,
             duration: Duration(milliseconds: 200), curve: Curves.ease);
       }
+    } else {
+      setState(() {
+        _dayController.animateTo(newIndex,
+            duration: Duration(milliseconds: 200), curve: Curves.ease);
+        _pageController.jumpToPage(newIndex);
+      });
     }
-
-    dayIndex = newDay;
+    dayIndex = newIndex;
 
     if (weeklyScrapes[dayIndex] == null) {
       setState(() {
-        weeklyScrapes[dayIndex] =
-            startEventScrapping(user, mainCalendar, weeklyDates[newDay], false);
+        weeklyScrapes[dayIndex] = startEventScrapping(
+            user, mainCalendar, weeklyDates[dayIndex], refresh);
       });
     }
   }
@@ -107,10 +120,21 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
       newWeek(newDate);
       mainCalendar.setController(EventController());
       mainCalendar.setNewAllDayEvents(getAllDayMap(weeklyDates));
-
-      weeklyScrapes[dayIndex] = startEventScrapping(
-          user, mainCalendar, weeklyDates[dayIndex], refresh);
     });
+
+    setDay(newDate, "both", refresh);
+  }
+
+  void _detectOverscroll() {
+    ScrollPosition pos = _pageController.position;
+
+    if (pos.outOfRange) {
+      if (pos.pixels < pos.viewportDimension * (-0.15)) {
+        setWeek(date.add(Duration(days: -1)), false);
+      } else if (pos.pixels > pos.viewportDimension * 6.15) {
+        setWeek(date.add(Duration(days: 1)), false);
+      }
+    }
   }
 
   @override
@@ -142,10 +166,11 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
               child: SafeArea(
                 bottom: false,
                 child: PageView(
-                  physics: PageScrollPhysics(),
+                  physics: BouncingScrollPhysics(),
                   onPageChanged: (newDay) {
                     if (!_dayController.indexIsChanging) {
-                      setDay(newDay, "page");
+                      setDay(date.add(Duration(days: newDay - dayIndex)),
+                          "page", false);
                     }
                   },
                   controller: _pageController,
@@ -177,7 +202,7 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
                     CalendarDayView(
                         date: weeklyDates[6],
                         scrape: weeklyScrapes[6] ?? Future.value("null"),
-                        refresh: setWeek)
+                        refresh: setWeek),
                   ],
                 ),
               ),
@@ -190,13 +215,13 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
 }
 
 class CalendarOverhead extends StatefulWidget {
-  final DateTime date;
+  DateTime date;
   final TabController controller;
   final Function setDay;
   final Function setWeek;
   final List<DateTime> weeklyDates;
 
-  const CalendarOverhead(
+  CalendarOverhead(
       {Key? key,
       required this.date,
       required this.controller,
@@ -211,13 +236,11 @@ class CalendarOverhead extends StatefulWidget {
 
 class _CalendarOverheadState extends State<CalendarOverhead> {
   late int index;
-  late DateTime date;
   late DateTime today;
   bool updating = false;
 
   @override
   void initState() {
-    date = widget.date;
     index = widget.controller.index;
     today = DateTime.now();
 
@@ -227,10 +250,10 @@ class _CalendarOverheadState extends State<CalendarOverhead> {
 
   // Controller Listener, updates date per index change.
   void updateDate() {
-    print("listener called");
     if (widget.controller.indexIsChanging) {
       setState(() {
-        date = date.add(Duration(days: widget.controller.index - index));
+        widget.date =
+            widget.date.add(Duration(days: widget.controller.index - index));
         index = widget.controller.index;
       });
     }
@@ -247,12 +270,12 @@ class _CalendarOverheadState extends State<CalendarOverhead> {
 
   void _changeWeek(String direction) {
     if (direction == "next") {
-      date = date.add(Duration(days: 7));
+      widget.date = widget.date.add(Duration(days: 7));
     } else {
-      date = date.add(Duration(days: -7));
+      widget.date = widget.date.add(Duration(days: -7));
     }
 
-    widget.setWeek(date, false);
+    widget.setWeek(widget.date, false);
   }
 
   @override
@@ -263,7 +286,7 @@ class _CalendarOverheadState extends State<CalendarOverhead> {
         Text("You are viewing",
             style: GoogleFonts.dmSerifDisplay(
                 fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
-        Text(DateFormat.yMMMMd('en_US').format(date),
+        Text(DateFormat.yMMMMd('en_US').format(widget.date),
             style: GoogleFonts.dmSerifDisplay(fontSize: 32)),
         FittedBox(
           fit: BoxFit.fitWidth,
@@ -286,8 +309,7 @@ class _CalendarOverheadState extends State<CalendarOverhead> {
                         width: 45,
                         height: 35,
                         decoration: BoxDecoration(shape: BoxShape.circle),
-                        child: Icon(FontAwesomeIcons.angleLeft,
-                            size: 20, color: Colors.black),
+                        child: Icon(FontAwesomeIcons.angleLeft, size: 20),
                       ),
                     ),
                   ),
@@ -307,7 +329,10 @@ class _CalendarOverheadState extends State<CalendarOverhead> {
                             vertical: -4.0, horizontal: 4.0)),
                     controller: widget.controller,
                     onTap: (newDay) {
-                      widget.setDay(newDay, "tab");
+                      widget.setDay(
+                          widget.date.add(Duration(days: newDay - index)),
+                          "tab",
+                          false);
                     },
                     splashBorderRadius: BorderRadius.circular(100),
                     tabs: [
@@ -334,8 +359,7 @@ class _CalendarOverheadState extends State<CalendarOverhead> {
                         width: 45,
                         height: 35,
                         decoration: BoxDecoration(shape: BoxShape.circle),
-                        child: Icon(FontAwesomeIcons.angleRight,
-                            size: 20, color: Colors.black),
+                        child: Icon(FontAwesomeIcons.angleRight, size: 20),
                       ),
                     ),
                   ),
@@ -357,6 +381,8 @@ class DayLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ThemeData theme = Theme.of(context);
+
     return Container(
         padding: EdgeInsets.all(5),
         decoration: BoxDecoration(
@@ -397,6 +423,13 @@ class CalendarDayView extends StatefulWidget {
 
 class _CalendarDayState extends State<CalendarDayView> {
   double HPM = 1.2; // Height per minute.
+  late ThemeData theme;
+
+  @override
+  void didChangeDependencies() {
+    theme = Theme.of(context);
+    super.didChangeDependencies();
+  }
 
   Future _refreshCalendar() {
     return Future.delayed(Duration(seconds: 1), () {
@@ -455,7 +488,8 @@ class _CalendarDayState extends State<CalendarDayView> {
             ),
           );
         } else {
-          if (snapshot.hasData) { // Data is not null
+          if (snapshot.hasData) {
+            // Data is not null
             // String "null", when Page hasn't ever been viewed
             if (snapshot.data! == "null") {
               return Container();
@@ -485,7 +519,10 @@ class _CalendarDayState extends State<CalendarDayView> {
                   ),
                 ),
               );
-            } else if (snapshot.data! == "success") { // Events found
+            } else if (snapshot.data! == "success") {
+              bool isDark = theme.primaryColor != Colors.white;
+
+              // Events found
               return RefreshIndicator(
                 triggerMode: RefreshIndicatorTriggerMode.anywhere,
                 onRefresh: _refreshCalendar,
@@ -515,7 +552,7 @@ class _CalendarDayState extends State<CalendarDayView> {
                                 DateFormat.jm().format(end).toLowerCase(),
                             style: TextStyle(
                                 color: HSLColor.fromColor(credInfo.color)
-                                    .withLightness(0.65)
+                                    .withLightness(isDark ? 0.9 : 0.65)
                                     .toColor(),
                                 fontSize: 14),
                           ),
@@ -530,7 +567,7 @@ class _CalendarDayState extends State<CalendarDayView> {
                                 DateFormat.jm().format(end).toLowerCase(),
                             style: TextStyle(
                                 color: HSLColor.fromColor(credInfo.color)
-                                    .withLightness(0.65)
+                                    .withLightness(isDark ? 0.9 : 0.65)
                                     .toColor(),
                                 fontSize: 14),
                           ),
@@ -550,13 +587,13 @@ class _CalendarDayState extends State<CalendarDayView> {
                         },
                         style: ElevatedButton.styleFrom(
                           onPrimary: HSLColor.fromColor(credInfo.color)
-                              .withLightness(0.65)
+                              .withLightness(isDark ? 0.9 : 0.65)
                               .toColor(),
                           elevation: 0.0,
                           alignment: Alignment.topLeft,
                           padding: EdgeInsets.all(5),
                           primary: HSLColor.fromColor(credInfo.color)
-                              .withLightness(0.9)
+                              .withLightness(isDark ? 0.4 : 0.9)
                               .toColor(),
                           shape: RoundedRectangleBorder(
                               borderRadius:
@@ -576,10 +613,10 @@ class _CalendarDayState extends State<CalendarDayView> {
                                   child: Container(
                                     alignment: Alignment.center,
                                     child: Icon(Icons.more_horiz,
-                                        color:
-                                            HSLColor.fromColor(credInfo.color)
-                                                .withLightness(0.65)
-                                                .toColor(),
+                                        color: HSLColor.fromColor(
+                                                credInfo.color)
+                                            .withLightness(isDark ? 0.9 : 0.65)
+                                            .toColor(),
                                         size: 36),
                                   ),
                                 )
@@ -593,7 +630,8 @@ class _CalendarDayState extends State<CalendarDayView> {
                                         style: TextStyle(
                                             color: HSLColor.fromColor(
                                                     credInfo.color)
-                                                .withLightness(0.65)
+                                                .withLightness(
+                                                    isDark ? 0.9 : 0.65)
                                                 .toColor(),
                                             fontSize: 16),
                                         maxLines: allowedLines.toInt(),
@@ -613,7 +651,8 @@ class _CalendarDayState extends State<CalendarDayView> {
                   maxDay: widget.date.add(Duration(seconds: 1)),
                   dayTitleBuilder: (date) {
                     // All day block.
-                    return AllDayEvents(eventsKey: '${date.month}.${date.day}');
+                    return AllDayEvents(
+                        eventsKey: '${date.month}.${date.day}', theme: theme);
                   },
                   timeLineBuilder: (date) {
                     String meridian = date.hour >= 12 ? " PM" : " AM";
@@ -627,9 +666,6 @@ class _CalendarDayState extends State<CalendarDayView> {
                           style: TextStyle(
                               height: 0.5, fontWeight: FontWeight.bold)),
                     );
-                  },
-                  onEventTap: (events, date) {
-                    print("tapped on " + events[0].title);
                   },
                   liveTimeIndicatorSettings:
                       HourIndicatorSettings(color: Colors.red),
@@ -648,8 +684,10 @@ class _CalendarDayState extends State<CalendarDayView> {
 
 class AllDayEvents extends StatefulWidget {
   final String eventsKey;
+  final ThemeData theme;
 
-  const AllDayEvents({required this.eventsKey, Key? key}) : super(key: key);
+  const AllDayEvents({required this.eventsKey, Key? key, required this.theme})
+      : super(key: key);
 
   @override
   _AllDayEventsState createState() => _AllDayEventsState();
@@ -670,6 +708,7 @@ class _AllDayEventsState extends State<AllDayEvents> {
   Widget getChild(EventFull event) {
     CredInfo info =
         pullCredInfo(event.cred, MainUser.of(context).data.http.chapter);
+    bool isDark = widget.theme.primaryColor != Colors.white;
 
     return Expanded(
       child: ElevatedButton(
@@ -682,13 +721,15 @@ class _AllDayEventsState extends State<AllDayEvents> {
           },
           style: ElevatedButton.styleFrom(
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            onPrimary:
-                HSLColor.fromColor(info.color).withLightness(0.65).toColor(),
+            onPrimary: HSLColor.fromColor(info.color)
+                .withLightness(isDark ? 0.9 : 0.65)
+                .toColor(),
             elevation: 0.0,
             alignment: Alignment.centerLeft,
             padding: EdgeInsets.only(left: 5, right: 5),
-            primary:
-                HSLColor.fromColor(info.color).withLightness(0.9).toColor(),
+            primary: HSLColor.fromColor(info.color)
+                .withLightness(isDark ? 0.4 : 0.9)
+                .toColor(),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(10)),
                 side: BorderSide(
@@ -703,7 +744,7 @@ class _AllDayEventsState extends State<AllDayEvents> {
               softWrap: false,
               style: TextStyle(
                   color: HSLColor.fromColor(info.color)
-                      .withLightness(0.65)
+                      .withLightness(isDark ? 0.9 : 0.65)
                       .toColor(),
                   fontSize: 16),
               maxLines: 1,

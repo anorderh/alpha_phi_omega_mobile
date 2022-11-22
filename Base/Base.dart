@@ -2,6 +2,7 @@
 /// Base screen connecting Home.dart & Calendar.dart
 ///
 
+import 'package:example/Data/Preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent-tab-view.dart';
 import 'Home/Home.dart';
@@ -10,6 +11,7 @@ import 'Home/Home_HTTP.dart';
 import '../Data/AppData.dart';
 import '../Data/UserData.dart';
 import 'package:sizer/sizer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Base extends StatefulWidget {
   final UserData user;
@@ -25,6 +27,7 @@ class BaseState extends State<Base> with TickerProviderStateMixin {
   List<IconData> icons = [Icons.home_rounded, Icons.event_rounded];
 
   late Maintenance appMaintenance;
+  late ThemeData theme;
   late Future<List<String>> scrape;
   late List<Widget> tabs;
 
@@ -32,12 +35,15 @@ class BaseState extends State<Base> with TickerProviderStateMixin {
   void initState() {
     // Getting user's info, reqs, and events.
     scrape = scrapeUserContent(widget.user, ignore: false);
+    UserPreferences.prefs.setInt('homeIndex', 0);
+
     super.initState();
   }
 
   @override
-  void didChangeDependencies() {
+  void didChangeDependencies() async {
     appMaintenance = MainApp.of(context).maintenance;
+    theme = Theme.of(context);
 
     // Creating Home & Calendar widgets to display
     tabs = [
@@ -61,6 +67,7 @@ class BaseState extends State<Base> with TickerProviderStateMixin {
       backgroundColor: Colors.white,
       body: PersistentTabView.custom(
         context,
+        backgroundColor: theme.primaryColor,
         confineInSafeArea: false,
         controller: _controller,
         itemCount: icons.length,
@@ -68,20 +75,21 @@ class BaseState extends State<Base> with TickerProviderStateMixin {
         navBarHeight: 85.0,
         handleAndroidBackButtonPress: true,
         screenTransitionAnimation: ScreenTransitionAnimation(
-            animateTabTransition: false,
-            curve: Curves.easeInOutExpo,
+            animateTabTransition: true,
+            curve: Curves.ease,
             duration: Duration(milliseconds: 350)),
         customWidget: (navBarEssentials) => Align(
           alignment: Alignment.center,
           child: CustomNavBar(
-              barIcons: icons,
-              selectedIndex: _controller.index,
-              onItemSelected: (index) {
-                setState(() {
-                  _controller.index = index;
-                  popEventView(appMaintenance.poppableContext);
-                });
-              }),
+            barIcons: icons,
+            selectedIndex: _controller.index,
+            onItemSelected: (index) {
+              setState(() {
+                _controller.index = index;
+                popEventView(appMaintenance.poppableContext);
+              });
+            },
+          ),
         ),
       ),
     );
@@ -118,13 +126,12 @@ class CustomNavBar extends StatelessWidget {
       width: 100.w,
       height: 150,
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).primaryColor,
           borderRadius: BorderRadius.only(
               topLeft: Radius.circular(25), topRight: Radius.circular(25)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black38.withOpacity(0.25),
-              spreadRadius: -20,
+              spreadRadius: -35,
               blurRadius: 75,
             )
           ]),

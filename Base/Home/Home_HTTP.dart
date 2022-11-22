@@ -53,7 +53,7 @@ Future<String> scrapeUserInfo(UserData user) async {
     return e.toString().substring(0, 45);
   }
 
-  print("USER INFO:\n${user.name}\n${user.position}\n");
+  // print("USER INFO:\n${user.name}\n${user.position}\n");
   return "Success";
 }
 
@@ -174,6 +174,6 @@ Future<String> scrapeUpcomingEvents(UserData user) async {
   // Sort events from sooner to later.
   user.upcomingEvents.sort((a, b) => a.compareTo(b));
 
-  print("events passed");
+  // print("events passed");
   return "Success";
 }

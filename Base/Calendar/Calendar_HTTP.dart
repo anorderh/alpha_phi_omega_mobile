@@ -113,7 +113,7 @@ Future<int> pullEventsFrom(
 // Process single event data
 Future<EventFull> handleEvent(
     Map httpTags, String baseURL, String link, int eventNumber) async {
-  print("handled event #" + eventNumber.toString());
+  // print("handled event #" + eventNumber.toString());
   List<DateTime> eventTimes; // [{date}, start, end]
   DateTime tempDate;
   List<String> temp = [];
@@ -148,10 +148,10 @@ Future<EventFull> handleEvent(
     event.start = eventTimes[1];
     event.end = eventTimes[2];
 
-    print(
-        "start: " + event.start.toString() + "| end: " + event.end.toString());
+    // print(
+    //     "start: " + event.start.toString() + "| end: " + event.end.toString());
   } else {
-    print("event \"${event.title}\" is all day");
+    // print("event \"${event.title}\" is all day");
   }
 
   try {
