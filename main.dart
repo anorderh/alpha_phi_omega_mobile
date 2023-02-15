@@ -22,11 +22,13 @@ import 'Internal/AboutApp_Constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await UserPreferences.init();
+  await UserPreferences.init(); // Pulling saved password
 
   runApp(const MyApp());
 }
 
+/// App root
+/// -> placing app & user data handlers at top of build tree
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 

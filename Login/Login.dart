@@ -20,6 +20,7 @@ import '../Internal/URLHandler.dart';
 import '../Data/UserData.dart';
 import 'package:sizer/sizer.dart';
 
+/// Login base, holding user & themedata
 class LoginBody extends StatefulWidget {
   const LoginBody({Key? key}) : super(key: key);
 

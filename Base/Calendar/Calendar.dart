@@ -21,6 +21,9 @@ import '../EventView/EventView.dart';
 import '../../Internal/TransitionHandler.dart';
 import '../../Internal/APOM_Objects.dart';
 
+///
+/// Calendar - scraping and formatting webserver data in real-time
+///
 class Calendar extends StatefulWidget {
   final DateTime current;
 
@@ -31,19 +34,21 @@ class Calendar extends StatefulWidget {
 }
 
 class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
-  late UserData user;
+  late UserData user; // User data
   late CalendarData mainCalendar;
 
   late double pageWidth;
-  bool endingSwipe = false;
+  bool endingSwipe = false; // For switching weeks
 
   late DateTime date;
   late List<DateTime> weeklyDates;
 
+  // Storing calendar modifiers
   late TabController _dayController;
   late PageController _pageController;
   late int dayIndex;
 
+  // All weeks stored
   late List<dynamic> weeklyScrapes;
 
   @override
@@ -214,6 +219,7 @@ class _CalendarState extends State<Calendar> with TickerProviderStateMixin {
   }
 }
 
+/// Calendar header storing week days & indicating which is selected
 class CalendarOverhead extends StatefulWidget {
   DateTime date;
   final TabController controller;
@@ -373,6 +379,7 @@ class _CalendarOverheadState extends State<CalendarOverhead> {
   }
 }
 
+/// Helper for CalendarOverhead, implementing dynamic toggles & front-end
 class DayLabel extends StatelessWidget {
   final String day;
   final bool isToday;
@@ -405,6 +412,9 @@ class DayLabel extends StatelessWidget {
   }
 }
 
+/// Graphical event rendering of an event on the Calendar
+///
+/// Tap to view an event
 class CalendarDayView extends StatefulWidget {
   final DateTime date;
   final Future<String> scrape;
@@ -682,6 +692,9 @@ class _CalendarDayState extends State<CalendarDayView> {
   }
 }
 
+/// Graphical event rendering when the event has no time and is "All-Day"
+///
+/// Tap to view.
 class AllDayEvents extends StatefulWidget {
   final String eventsKey;
   final ThemeData theme;

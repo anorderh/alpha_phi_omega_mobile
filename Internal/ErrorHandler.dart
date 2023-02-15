@@ -9,6 +9,9 @@ import '../Data/AppData.dart';
 import '../Data/UserData.dart';
 import '../Login/Login_HTTP.dart';
 
+///
+/// Dialog to display when refreshing a widget
+///
 class HTTPRefreshDialog extends StatefulWidget {
   final Function refreshScrape;
 

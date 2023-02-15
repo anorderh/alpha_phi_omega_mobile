@@ -24,7 +24,7 @@ import 'package:expandable_page_view/expandable_page_view.dart';
 import '../../Internal/ErrorHandler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// HOME WIDGET
+/// Home widget storing events & member requirements info
 class Home extends StatefulWidget {
   final Future<List<String>> content;
   final Maintenance maintenance;
@@ -187,6 +187,7 @@ class _HomeState extends State<Home> {
   }
 }
 
+/// Button to view Settings Page
 class CheckSettingsButton extends StatelessWidget {
   CheckSettingsButton({Key? key}) : super(key: key);
 
@@ -211,6 +212,7 @@ class CheckSettingsButton extends StatelessWidget {
   }
 }
 
+/// Widget displaying user name, membership status, and profile pic
 class UserHeader extends StatefulWidget {
   const UserHeader({Key? key}) : super(key: key);
 
@@ -282,6 +284,7 @@ class _UserHeaderState extends State<UserHeader> {
   }
 }
 
+/// Dynamic tab bar for quick swiping between member requirements and events
 class HomeTabBar extends StatefulWidget {
   final TabController controller;
   final Function setIndex;
@@ -351,6 +354,7 @@ class _HomeTabBarState extends State<HomeTabBar> {
   }
 }
 
+/// Widget holding events and requirement info
 class UserContent extends StatefulWidget {
   const UserContent({Key? key}) : super(key: key);
 
@@ -415,6 +419,7 @@ class _UserContentState extends State<UserContent>
   }
 }
 
+/// User member requirements.
 class UserReqs extends StatefulWidget {
   final Map<String, List<double>> reqs;
 
@@ -657,6 +662,7 @@ class _UserReqsState extends State<UserReqs> {
   }
 }
 
+/// User's upcoming events.
 class UserEvents extends StatefulWidget {
   final List<EventFull> events;
 
@@ -762,6 +768,7 @@ class _UserEventsState extends State<UserEvents> {
   }
 }
 
+/// UserEventList, to group up events on the same day
 class UserEventList extends StatelessWidget {
   final String label;
   final List<EventFull> events;

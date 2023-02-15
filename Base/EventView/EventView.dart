@@ -17,6 +17,9 @@ import 'package:sizer/sizer.dart';
 import '../../Data/UserData.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+///
+/// Event info upon tapping a Calendar event
+///
 class EventView extends StatefulWidget {
   final EventFull event;
   final CredInfo info;
@@ -167,6 +170,7 @@ class _EventViewState extends State<EventView> {
   }
 }
 
+/// Helper widget for EventView, scrollable textbox holding info
 class Description extends StatelessWidget {
   final String desc;
 
@@ -207,6 +211,7 @@ class Description extends StatelessWidget {
   }
 }
 
+/// Buttons for EventView enabling joining, leaving, and adding to Google Calendar
 class EventButtons extends StatefulWidget {
   final Future<List<dynamic>> scrape;
   final EventFull event;
@@ -254,6 +259,8 @@ class _EventButtonsState extends State<EventButtons> {
   }
 }
 
+/// Singular button widget within EventButtons, to be derived for implementing
+/// SignUpButton and CalendarButton
 class EventButton extends StatelessWidget {
   final Widget label;
   final Function? callback;
@@ -296,6 +303,8 @@ class EventButton extends StatelessWidget {
   }
 }
 
+/// Button enabling event signups. Dynamically changes depending if event is
+/// open, closed, full, or has not opened.
 class SignupButton extends StatefulWidget {
   final Future<List<dynamic>> scrape;
   final EventFull event;
@@ -457,6 +466,7 @@ class _SignupButtonState extends State<SignupButton> {
   }
 }
 
+/// Button enabling integration with Google Calendar
 class CalendarButton extends StatelessWidget {
   final double size;
   final EventFull event;
@@ -520,6 +530,7 @@ class CalendarButton extends StatelessWidget {
   }
 }
 
+/// Widget holding event info
 class EventInfo extends StatelessWidget {
   final bool isLight;
   final EventFull event;
@@ -639,6 +650,7 @@ class EventInfo extends StatelessWidget {
   }
 }
 
+/// Widget holding basic info such as location, time, date, and credit
 class InfoPanel extends StatelessWidget {
   final Icon icon;
   final String text;
@@ -693,6 +705,9 @@ class InfoPanel extends StatelessWidget {
   }
 }
 
+/// Dynamic widget listing all current participants.
+///
+/// Changes depending on if user joins or not
 class ParticipantList extends StatefulWidget {
   final Future<List<dynamic>> scrape;
 
@@ -741,7 +756,7 @@ class _ParticipantListState extends State<ParticipantList> {
     return true;
   }
 
-  // H: Translate scrape into varying shift blocks.
+  /// Helper method - translate scrape into varying shift blocks.
   Widget retrieveShift(
       String title, Map<String, List<Participant>> participants) {
     List<String> titleParts = title.split(" ");
@@ -784,7 +799,7 @@ class _ParticipantListState extends State<ParticipantList> {
     );
   }
 
-  // H: Translate scrape into varying participant tiles.
+  /// Helper method - translate scrape into varying participant tiles.
   List<Widget> retrieveTiles(Map<String, List<Participant>> participants) {
     List<Widget> tiles = [];
 
@@ -853,7 +868,7 @@ class _ParticipantListState extends State<ParticipantList> {
     return tiles;
   }
 
-  // H: Format participant data in tile.
+  /// Helper method - format participant data in tile.
   Widget retrieveTileContent(Participant person) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -905,7 +920,7 @@ class _ParticipantListState extends State<ParticipantList> {
     );
   }
 
-  // Waitlist indicator appearance.
+  /// Helper method - waitlist indicator appearance.
   Widget getWaitlistContent() {
     return Row(
       children: [
@@ -985,7 +1000,7 @@ class _ParticipantListState extends State<ParticipantList> {
         });
   }
 }
-
+/// Rendered tile holding participants info
 class ParticipantTile extends StatelessWidget {
   final Widget contents;
   final Color color;
@@ -1014,6 +1029,7 @@ class ParticipantTile extends StatelessWidget {
   }
 }
 
+/// Prompt to show when joining an event
 class JoinDialog extends StatefulWidget {
   final Function update;
   final EventFull event;
@@ -1258,6 +1274,7 @@ class _JoinDialogState extends State<JoinDialog> {
   }
 }
 
+/// Prompt to show the result of attempting to join or leave an event
 class ResultDialog extends StatefulWidget {
   final Function updateParticipants;
   final String actionName;

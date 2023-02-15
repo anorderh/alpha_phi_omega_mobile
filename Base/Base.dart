@@ -13,6 +13,8 @@ import '../Data/UserData.dart';
 import 'package:sizer/sizer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Application base, allowing for quick navigation between Home and Calendar
+/// pages.
 class Base extends StatefulWidget {
   final UserData user;
 
