@@ -1,17 +1,24 @@
 <div style="text-align: center;">
 
-</div>
 ![banner](banner.png)
 
-*An event registration iOS app to help members track requirements and events on-the-go, powered by Flutter*
+<div align="center"><em>An event registration iOS app to help members track requirements and events on-the-go, powered by Flutter.</em></div>
+<p></p>
 
-![GitHub last commit](https://img.shields.io/github/last-commit/anorderh/alpha_phi_omega_mobile) ![GitHub contributors](https://img.shields.io/github/contributors/anorderh/alpha_phi_omega_mobile) ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anorderh/alpha_phi_omega_mobile) ![GitHub](https://img.shields.io/github/license/anorderh/alpha_phi_omega_mobile)
+<div align="center">
+
+  <a href="">![GitHub last commit](https://img.shields.io/github/last-commit/anorderh/alpha_phi_omega_mobile)</a>
+  <a href="">![GitHub contributors](https://img.shields.io/github/contributors/anorderh/alpha_phi_omega_mobile)</a>
+  <a href="">![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anorderh/alpha_phi_omega_mobile)</a>
+  <a href="">![GitHub](https://img.shields.io/github/license/anorderh/alpha_phi_omega_mobile)</a>
+
+</div>
 
 ---
 
 ### iOS App Store - Download
 
-[<img src="appstore.jpg" title="" alt="image" width="159">](https://apps.apple.com/us/app/alpha-phi-omega-mobile/id1637918626)
+[<img src="appstore.jpg" title="" alt="image" width="100">](https://apps.apple.com/us/app/alpha-phi-omega-mobile/id1637918626)
 
 ---
 
@@ -23,16 +30,16 @@ https://user-images.githubusercontent.com/60157725/218973376-82880a34-92e5-4c66-
 
 ### Goal
 
-    This project's goal is to develop a mobile app capable of communicating with the webserver @ [http://www.apoonline.org](http://www.apoonline.org). Furthermore, it should be able to extract dynamic data in real-time and organize into a comprehensive and interactive UI for iOS users.
+    This project's goal is to develop a mobile app capable of communicating with the webserver @ [http://www.apoonline.org](http://www.apoonline.org). Furthermore, it should be able to extract dynamic data in real-time and organize it into a comprehensive and interactive UI for iOS users.
 
 ## Features
 
 | Demo                                                                                          | Use                                                                                                            |
 | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| <img title="" src="demogifs/intro.gif" alt="intro" width="300">                               | 1. Mobile access to view member requirements and upcoming events                                               |
-| <img title="" src="demogifs/calendarView.gif" alt="calendar" width="300" data-align="center"> | 2. Global day-view calendar sourced from [www.apoonline.org](https://www.apoonline.org) displaying open events |
-| <img src="demogifs/eventView.gif" title="" alt="events" width="300">                          | 3. Event pages to view relevant info (location, date&time, host, description) with sign-up functionality       |
-| <img src="demogifs/googleIntegration.gif" title="" alt="googleCalendar" width="300">          | 4. Google Calendar integration for easier schedule management                                                  |
+| <img title="" src="demogifs/intro.gif" alt="intro" width="200">                               | 1. Mobile access to view member requirements and upcoming events                                               |
+| <img title="" src="demogifs/calendarView.gif" alt="calendar" width="200" data-align="center"> | 2. Global day-view calendar sourced from [www.apoonline.org](https://www.apoonline.org) displaying open events |
+| <img src="demogifs/eventView.gif" title="" alt="events" width="200">                          | 3. Event pages to view relevant info (location, date&time, host, description) with sign-up functionality       |
+| <img src="demogifs/googleIntegration.gif" title="" alt="googleCalendar" width="200">          | 4. Google Calendar integration for easier schedule management                                                  |
 
 ## Tech Stack
 
