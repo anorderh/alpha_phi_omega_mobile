@@ -1,16 +1,8 @@
-![banner](/Users/anorde/Coding/Projects/IntelliJProjects/alpha_phi_omega_mobile/lib/banner.png)
+![banner](banner.png)
 
 *An event registration iOS app to help members track requirements and events on-the-go, powered by Flutter*
 
-![GitHub last commit](https://img.shields.io/github/last-commit/anorderh/alpha_phi_omega_mobile)
-
-![GitHub contributors](https://img.shields.io/github/contributors/anorderh/alpha_phi_omega_mobile)
-
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anorderh/alpha_phi_omega_mobile)
-
-![GitHub](https://img.shields.io/github/license/anorderh/alpha_phi_omega_mobile)
-
-
+![GitHub last commit](https://img.shields.io/github/last-commit/anorderh/alpha_phi_omega_mobile) ![GitHub contributors](https://img.shields.io/github/contributors/anorderh/alpha_phi_omega_mobile) ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anorderh/alpha_phi_omega_mobile) ![GitHub](https://img.shields.io/github/license/anorderh/alpha_phi_omega_mobile)
 
 ---
 
@@ -23,6 +15,8 @@ https://img.shields.io/badge/iOS%20App%20Store-Click%20me!-blue
 ### Demo
 
 
+https://user-images.githubusercontent.com/60157725/218973376-82880a34-92e5-4c66-a439-af3e2eeffb74.mp4
+
 
 ---
 
@@ -34,10 +28,10 @@ https://img.shields.io/badge/iOS%20App%20Store-Click%20me!-blue
 
 | Demo                                                                                                                                                       | Use                                                                                                      |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| ![intro](/Users/anorde/Coding/Projects/IntelliJProjects/alpha_phi_omega_mobile/lib/demogifs/intro.gif)                                                     | 1. Mobile access to view member requirements and upcoming events                                         |
-| <img title="" src="file:///Users/anorde/Coding/Projects/IntelliJProjects/alpha_phi_omega_mobile/lib/demogifs/calendarView.gif" alt="calendar" width="155"> | 2. Global day-view calendar sourced from www.apoonline.org displaying open events                        |
-| ![events](/Users/anorde/Coding/Projects/IntelliJProjects/alpha_phi_omega_mobile/lib/demogifs/eventView.gif)                                                | 3. Event pages to view relevant info (location, date&time, host, description) with sign-up functionality |
-| ![googleCalendar](/Users/anorde/Coding/Projects/IntelliJProjects/alpha_phi_omega_mobile/lib/demogifs/googleIntegration.gif)                                | 4. Google Calendar integration for easier schedule management                                            |
+| ![intro](demogifs/intro.gif)                                                     | 1. Mobile access to view member requirements and upcoming events                                         |
+| ![calendar](demogifs/calendarView.gif) | 2. Global day-view calendar sourced from [www.apoonline.org](https://www.apoonline.org) displaying open events                        |
+| ![events](demogifs/eventView.gif)                                                | 3. Event pages to view relevant info (location, date&time, host, description) with sign-up functionality |
+| ![googleCalendar](googleIntegration.gif)                                | 4. Google Calendar integration for easier schedule management                                            |
 
 ## Tech Stack
 
