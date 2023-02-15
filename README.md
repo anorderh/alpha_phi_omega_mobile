@@ -14,21 +14,15 @@
 
 </div>
 
----
-
-### iOS App Store - Download
+## App Store Page
 
 [<img src="appstore.jpg" title="" alt="image" width="100">](https://apps.apple.com/us/app/alpha-phi-omega-mobile/id1637918626)
 
----
-
-### Demo
+## Demo
 
 https://user-images.githubusercontent.com/60157725/218973376-82880a34-92e5-4c66-a439-af3e2eeffb74.mp4
 
----
-
-### Goal
+## Goal
 
     This project's goal is to develop a mobile app capable of communicating with the webserver @ [http://www.apoonline.org](http://www.apoonline.org). Furthermore, it should be able to extract dynamic data in real-time and organize it into a comprehensive and interactive UI for iOS users.
 
