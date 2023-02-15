@@ -1,3 +1,6 @@
+<div style="text-align: center;">
+
+</div>
 ![banner](banner.png)
 
 *An event registration iOS app to help members track requirements and events on-the-go, powered by Flutter*
@@ -6,17 +9,15 @@
 
 ---
 
-### iOS App Store
+### iOS App Store - Download
 
-https://img.shields.io/badge/iOS%20App%20Store-Click%20me!-blue
+[<img src="appstore.jpg" title="" alt="image" width="159">](https://apps.apple.com/us/app/alpha-phi-omega-mobile/id1637918626)
 
 ---
 
 ### Demo
 
-
 https://user-images.githubusercontent.com/60157725/218973376-82880a34-92e5-4c66-a439-af3e2eeffb74.mp4
-
 
 ---
 
@@ -26,12 +27,12 @@ https://user-images.githubusercontent.com/60157725/218973376-82880a34-92e5-4c66-
 
 ## Features
 
-| Demo                                                                                                                                                       | Use                                                                                                      |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| ![intro](demogifs/intro.gif)                                                     | 1. Mobile access to view member requirements and upcoming events                                         |
-| ![calendar](demogifs/calendarView.gif) | 2. Global day-view calendar sourced from [www.apoonline.org](https://www.apoonline.org) displaying open events                        |
-| ![events](demogifs/eventView.gif)                                                | 3. Event pages to view relevant info (location, date&time, host, description) with sign-up functionality |
-| ![googleCalendar](googleIntegration.gif)                                | 4. Google Calendar integration for easier schedule management                                            |
+| Demo                                                                                          | Use                                                                                                            |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| <img title="" src="demogifs/intro.gif" alt="intro" width="300">                               | 1. Mobile access to view member requirements and upcoming events                                               |
+| <img title="" src="demogifs/calendarView.gif" alt="calendar" width="300" data-align="center"> | 2. Global day-view calendar sourced from [www.apoonline.org](https://www.apoonline.org) displaying open events |
+| <img src="demogifs/eventView.gif" title="" alt="events" width="300">                          | 3. Event pages to view relevant info (location, date&time, host, description) with sign-up functionality       |
+| <img src="demogifs/googleIntegration.gif" title="" alt="googleCalendar" width="300">          | 4. Google Calendar integration for easier schedule management                                                  |
 
 ## Tech Stack
 
@@ -58,5 +59,3 @@ Pull requests are welcomed. For major changes, please open an issue first to dis
 ## License
 
 [MIT License](LICENSE)
-
-
